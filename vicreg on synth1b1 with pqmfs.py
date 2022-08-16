@@ -8,6 +8,8 @@
 import datetime
 import math
 
+from vicreg import VICReg
+
 import hydra
 import IPython
 import numpy as np
@@ -161,17 +163,17 @@ def app(cfg: DictConfig) -> None:
     audio_embedding_to_params = audio_embedding_to_params.to(device)
 
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
-        sample_rate=sample_rate,
-        n_fft=n_fft,
-        win_length=win_length,
-        hop_length=hop_length,
-        center=True,
-        pad_mode="reflect",
-        power=2.0,
-        norm="slaney",
-        onesided=True,
-        n_mels=n_mels,
-        mel_scale="htk",
+        sample_rate=cfg.torchsynth.rate,
+        n_fft=cfg.mel.n_fft,
+        win_length=cfg.mel.win_length,
+        hop_length=cfg.mel.hop_length,
+        center=cfg.mel.center,
+        pad_mode=cfg.mel.pad_mode,
+        power=cfg.mel.power,
+        norm=cfg.mel.norm,
+        onesided=cfg.mel.onesided,
+        n_mels=cfg.mel.n_mels,
+        mel_scale=cfg.mel.mel_scale,
     )
     mel_spectrogram = mel_spectrogram.to(device)
 

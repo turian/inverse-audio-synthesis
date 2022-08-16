@@ -30,9 +30,16 @@ vicreg:
 
 mel:
     n_fft: 1024
-    win_length: None
+    win_length: null
     hop_length: 512
+    center: True
+    pad_mode: "reflect"
+    power: 2.0
+    norm: "slaney"
+    onesided: True
     n_mels: 128
+    mel_scale: "htk"
+    
 
 # torchvision outputs 1000 dimensional vectors
 dim: 1000

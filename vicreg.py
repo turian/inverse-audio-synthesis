@@ -2,6 +2,9 @@
 # https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
 # We remove the backbone because we do them externally
 # And we remove torch.dist
+import torch.nn as nn
+from torch import Tensor
+
 
 
 class VICReg(nn.Module):
