@@ -1,4 +1,3 @@
-
 # Adapted from
 # https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
 # We remove the backbone because we do them externally
@@ -157,7 +156,6 @@ def exclude_bias_and_norm(p):
     return p.ndim == 1
 
 
-
 def adjust_learning_rate(args, optimizer, loader, step):
     max_steps = args.epochs * len(loader)
     warmup_steps = 10 * len(loader)
@@ -173,4 +171,3 @@ def adjust_learning_rate(args, optimizer, loader, step):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     return lr
-

@@ -8,6 +8,7 @@
 import datetime
 import math
 
+import hydra
 import IPython
 import numpy as np
 import soundfile
@@ -18,8 +19,10 @@ import torch.nn.functional as F
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
+import torchaudio.transforms
 import torchvision
 import wandb
+from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from scipy import signal as sig
 from torch import Tensor
@@ -31,17 +34,6 @@ from torchsynth.synth import Voice
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
-
-
-
-
-
-import torch
-import torchaudio.transforms
-
 
 
 def downstream_batch(batch_num, vicreg):
@@ -104,15 +96,15 @@ def downstream_batch(batch_num, vicreg):
         )
 
 
-
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
+
+
 if __name__ == "__main__":
     app()
 
 wandb.login()
-
 
 
 # We'll generate BATCH_SIZE sounds per batch, 4 seconds each
@@ -153,7 +145,6 @@ vision_model = mobilenet_v3_small(pretrained=True).to("cuda")
 preprocess = torchvision.transforms.Normalize(
     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
 )
-
 
 
 parammlp = ParamMLP()
@@ -286,7 +277,6 @@ for batch_num in tqdm(list(range(PRETRAIN_STEPS))):
     vicreg_scaler.scale(vicreg_loss).backward()
     vicreg_scaler.step(vicreg_optimizer)
     vicreg_scaler.update()
-
 
 
 downstream(0, vicreg)

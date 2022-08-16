@@ -1,4 +1,3 @@
-
 class AudioEmbedding(nn.Module):
     def __init__(self, pqmf, vision_model):
         super().__init__()
@@ -22,5 +21,3 @@ class AudioEmbedding(nn.Module):
 
         y = self.vision_model(zimg8preprocess)
         return y
-
-

@@ -1,5 +1,3 @@
-
-
 # Based upon 32K torchsynth sounds
 # If you pass white noise, you get SMALLER values: 0.7891 .. -0.6486
 maxval = 1.5680482
@@ -16,4 +14,3 @@ def scale8(x, xmin=minval, xmax=maxval):
 
 def unscale8(x, xmin=minval, xmax=maxval):
     return x / 255.0 * (xmax - xmin) + xmin
-
