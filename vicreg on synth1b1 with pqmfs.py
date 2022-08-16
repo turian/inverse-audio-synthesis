@@ -1,18 +1,3 @@
-# -*- coding: utf-8 -*-
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.11.2
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
 # vicreg on synth1b1 with 3 channel pqmfs
 #
 # TODO:
@@ -20,50 +5,7 @@
 # * Interleave pretraining and downstream
 
 
-# +
-# Use the largest batchsize possible
-BATCH_SIZE = 256
-# BATCH_SIZE = 8
-# BATCH_SIZE = 1024
-
-# Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
-# USE_LARS = True
-USE_LARS = False
-
-# Resnet output 1000 dimensional vectors
-DIM = 1000
-
-# Number of torchsynth voice params
-NPARAMS = 78
-
-# torchsynth default
-RATE = 44100
-
-
-# PRETRAIN_STEPS = 128
-PRETRAIN_STEPS = 1024000
-
-# PRETRAIN_STEPS_CHECKPOINT_EVERY = 10
-PRETRAIN_STEPS_CHECKPOINT_EVERY = 10000
-# -
-
-# !nvidia-smi
-
-# +
-# !pip3 install torchsynth
-
-# !pip3 install pynvml
-
-# !pip3 install torchaudio
-
-# !pip3 install torchvision
-
-# !pip3 install torch-audiomentations
-# -
-
-
 import datetime
-# +
 import math
 
 import IPython
@@ -72,6 +14,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -80,27 +23,21 @@ import wandb
 from pynvml import *
 from scipy import signal as sig
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
-# -
-
-
-def utcstr():
-    return datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
-
-
-utcnowstr = utcstr()
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
 
 wandb.login()
 
-# +
 
 # We'll generate BATCH_SIZE sounds per batch, 4 seconds each
 # TODO: On larger GPUs, use larger batch size
@@ -111,7 +48,6 @@ synthconfig = SynthConfig(
     buffer_size_seconds=4.0,
 )
 
-# +
 
 nvmlInit()
 
@@ -122,14 +58,12 @@ def gpu_mem_used():
     return info.free / 1024 / 1024 / 1024
 
 
-# +
 voice = Voice(synthconfig=synthconfig)
 
 # Run on the GPU if it's available
 if torch.cuda.is_available():
     voice = voice.to("cuda")
 
-# +
 # #!wget https://github.com/rishikksh20/multiband-hifigan/raw/master/pqmf.py
 
 
@@ -182,12 +116,9 @@ class PQMF(torch.nn.Module):
         return x
 
 
-# -
-
 # Use 3 channels for RGB image (not 4 which is PQMF default)
 pqmf = PQMF(N=3).to("cuda")
 
-# +
 # Based upon 32K torchsynth sounds
 # If you pass white noise, you get SMALLER values: 0.7891 .. -0.6486
 maxval = 1.5680482
@@ -218,7 +149,6 @@ def unscale8(x, xmin=minval, xmax=maxval):
 vision_model = mobilenet_v3_small(pretrained=True).to("cuda")
 # vision_model = mobilenet_v3_small(pretrained=False).to("cuda")
 
-# +
 ## Initialize the inference transforms
 # preprocess = weights.transforms()
 
@@ -226,8 +156,6 @@ vision_model = mobilenet_v3_small(pretrained=True).to("cuda")
 preprocess = torchvision.transforms.Normalize(
     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
 )
-
-# +
 
 
 class ParamMLP(nn.Module):
@@ -250,9 +178,6 @@ class ParamMLP(nn.Module):
 
 parammlp = ParamMLP()
 parammlp.cuda()
-
-
-# +
 
 
 class AudioEmbedding(nn.Module):
@@ -282,7 +207,6 @@ class AudioEmbedding(nn.Module):
 
 audio_embedding = AudioEmbedding(pqmf, vision_model)
 
-# +
 # Adapted from
 # https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
 # We remove the backbone because we do them externally
@@ -458,7 +382,6 @@ args.cov_coeff = 1.0
 # args.cov_coeff = 0.0
 args.wd = 1e-6
 
-# -
 
 """
 
@@ -474,8 +397,6 @@ apply_augmentation = Compose(
     ]
 )
 """
-
-# +
 
 
 def adjust_learning_rate(args, optimizer, loader, step):
@@ -493,9 +414,6 @@ def adjust_learning_rate(args, optimizer, loader, step):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     return lr
-
-
-# +
 
 
 class AudioEmbeddingToParams(nn.Module):
@@ -525,7 +443,6 @@ audio_embedding_to_params.cuda()
 
 
 import torch
-# +
 import torchaudio.transforms
 
 sample_rate = 44100
@@ -548,7 +465,6 @@ mel_spectrogram = torchaudio.transforms.MelSpectrogram(
     mel_scale="htk",
 ).cuda()
 
-# -
 
 # FUCKS with distributed stuff :(
 """
@@ -566,8 +482,6 @@ class VoiceIterableDataset(torch.utils.data.Dataset):
 dataset = VoiceIterableDataset(voice)
 """
 
-
-# +
 
 vicreg_scaler = torch.cuda.amp.GradScaler()
 
@@ -679,7 +593,6 @@ for batch_num in tqdm(list(range(PRETRAIN_STEPS))):
     vicreg_scaler.update()
 
 
-# +
 # !rm *wav
 
 
@@ -744,10 +657,13 @@ def downstream_batch(batch_num, vicreg):
 
 
 downstream(0, vicreg)
-# -
-
-
-# +
-
-
 wandb.finish()
+
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def app(cfg: DictConfig) -> None:
+    print(OmegaConf.to_yaml(cfg))
+
+
+if __name__ == "__main__":
+    app()

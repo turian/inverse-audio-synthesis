@@ -1,0 +1,31 @@
+
+
+
+# +
+# Use the largest batchsize possible
+BATCH_SIZE = 256
+# BATCH_SIZE = 8
+# BATCH_SIZE = 1024
+
+# Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
+# USE_LARS = True
+USE_LARS = False
+
+# Resnet output 1000 dimensional vectors
+DIM = 1000
+
+# Number of torchsynth voice params
+NPARAMS = 78
+
+# torchsynth default
+RATE = 44100
+
+
+# PRETRAIN_STEPS = 128
+PRETRAIN_STEPS = 1024000
+
+# PRETRAIN_STEPS_CHECKPOINT_EVERY = 10
+PRETRAIN_STEPS_CHECKPOINT_EVERY = 10000
+# -
+
+# !nvidia-smi
