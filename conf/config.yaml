@@ -1,8 +1,14 @@
-vicreg:
-    # Use the largest batchsize possible
-    batch_size: 8
-    #batch_size: 256
+# Use the largest batchsize possible
+batch_size: 8
+#batch_size: 256
 
+torchsynth:
+    reproducible: False
+    buffer_size_seconds: 4.0
+    # torchsynth default
+    rate: 44100
+
+vicreg:
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False
     #use_lars: True
@@ -20,6 +26,8 @@ vicreg:
     cov_coeff: 1.0
     weight_decy: 1e-6
 
+    pretrain_vision_model: True
+
 mel:
     n_fft: 1024
     win_length: None
@@ -31,7 +39,3 @@ dim: 1000
 
 # Number of torchsynth voice params
 nparams: 78
-
-# torchsynth default
-rate: 44100
-

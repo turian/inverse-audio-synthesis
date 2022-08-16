@@ -3,7 +3,7 @@
 # TODO:
 # * Add EMA
 # * Interleave pretraining and downstream
-
+# * multigpu
 
 import datetime
 import math
@@ -15,6 +15,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -23,15 +24,17 @@ import torchvision
 import wandb
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
-from scipy import signal as sig
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
+
+from pqmf import PQMF
 
 
 def downstream_batch(batch_num, vicreg):
@@ -56,7 +59,7 @@ def downstream_batch(batch_num, vicreg):
 
     voice.freeze_parameters(voice.get_parameters().keys())
     # # WHY??????
-    voice.cuda()
+    voice = voice.to(device)
     (
         test_predicted_audio,
         test_predicted_predicted_params,
@@ -71,7 +74,8 @@ def downstream_batch(batch_num, vicreg):
     print(mel_l1_error)
 
     for i in tqdm(list(range(8))):
-        silence = torch.zeros(int(RATE * 0.5)).cuda()
+        silence = torch.zeros(int(RATE * 0.5))
+        silence = silence.to(device)
         test_true_predict_audio = torch.cat(
             [test_true_audio[i], silence, test_predicted_audio[i]]
         )
@@ -103,31 +107,39 @@ def app(cfg: DictConfig) -> None:
     # We'll generate BATCH_SIZE sounds per batch, 4 seconds each
     # TODO: On larger GPUs, use larger batch size
     synthconfig = SynthConfig(
-        batch_size=BATCH_SIZE,
-        reproducible=False,
-        sample_rate=RATE,
-        buffer_size_seconds=4.0,
+        batch_size=cfg.batch_size,
+        reproducible=cfg.torchsynth.reproducible,
+        sample_rate=cfg.torchsynth.rate,
+        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
     )
 
     voice = Voice(synthconfig=synthconfig)
 
     # Run on the GPU if it's available
+    # TODO: multigpu
     if torch.cuda.is_available():
-        voice = voice.to("cuda")
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    voice = voice.to(device)
 
     # Use 3 channels for RGB image (not 4 which is PQMF default)
-    pqmf = PQMF(N=3).to("cuda")
+    pqmf = PQMF(N=3)
+    pqmf = pqmf.to(device)
 
     # New weights with accuracy 80.858%
     # https://pytorch.org/vision/stable/models.html
     # weights = ResNet50_Weights.IMAGENET1K_V2
-    # vision_model = resnet50(weights=weights).to("cuda")
+    # vision_model = resnet50(weights=weights)
+    # vision_model = vision_model.to(device)
 
     # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-    # vision_model = mobilenet_v3_small(weights=weights).to("cuda")
+    # vision_model = mobilenet_v3_small(weights=weights)
+    # vision_model = vision_model.to(device)
     # torchvision 0.12.0 :(
-    vision_model = mobilenet_v3_small(pretrained=True).to("cuda")
-    # vision_model = mobilenet_v3_small(pretrained=False).to("cuda")
+    vision_model = mobilenet_v3_small(pretrained=cfg.vicreg.pretrained_vision_model)
+    vision_model = vision_model.to(device)
 
     ## Initialize the inference transforms
     # preprocess = weights.transforms()
@@ -138,12 +150,12 @@ def app(cfg: DictConfig) -> None:
     )
 
     parammlp = ParamMLP()
-    parammlp.cuda()
+    parammlp = parammlp.to(device)
 
     audio_embedding = AudioEmbedding(pqmf, vision_model)
 
     audio_embedding_to_params = AudioEmbeddingToParams()
-    audio_embedding_to_params.cuda()
+    audio_embedding_to_params = audio_embedding_to_params.to(device)
 
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
         sample_rate=sample_rate,
@@ -157,7 +169,8 @@ def app(cfg: DictConfig) -> None:
         onesided=True,
         n_mels=n_mels,
         mel_scale="htk",
-    ).cuda()
+    )
+    mel_spectrogram = mel_spectrogram.to(device)
 
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
@@ -175,9 +188,10 @@ def app(cfg: DictConfig) -> None:
         #      }
     )
 
-    # vicreg = VICReg(args=args, backbone1 = parammlp, backbone2 = parammlp).cuda()
-    vicreg = VICReg(args=args, backbone1=parammlp, backbone2=audio_embedding).cuda()
-    # vicreg = VICReg(args=args, backbone1 = audio_embedding, backbone2 = audio_embedding).cuda()
+    # vicreg = VICReg(args=args, backbone1 = parammlp, backbone2 = parammlp)
+    vicreg = VICReg(args=args, backbone1=parammlp, backbone2=audio_embedding)
+    # vicreg = VICReg(args=args, backbone1 = audio_embedding, backbone2 = audio_embedding)
+    vicreg = vicreg.to(device)
 
     # Probably could use a smarter optimizer?
     # vicreg_optimizer = optim.Adam(vicreg.parameters(), lr=0.000001)

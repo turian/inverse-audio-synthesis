@@ -1,5 +1,9 @@
 # #!wget https://github.com/rishikksh20/multiband-hifigan/raw/master/pqmf.py
 
+import numpy as np
+import torch
+from scipy import signal as sig
+
 
 class PQMF(torch.nn.Module):
     def __init__(self, N=4, taps=62, cutoff=0.15, beta=9.0):
