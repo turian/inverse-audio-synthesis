@@ -1,49 +1,37 @@
+vicreg:
+    # Use the largest batchsize possible
+    batch_size: 8
+    #batch_size: 256
 
+    # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
+    use_lars: False
+    #use_lars: True
 
+    nsteps: 128
+#    nsteps: 1024000
 
-# +
-# Use the largest batchsize possible
-BATCH_SIZE = 256
-# BATCH_SIZE = 8
-# BATCH_SIZE = 1024
+    checkpoint_every_nsteps: 10
+#    checkpoint_every_nsteps: 10000
 
-# Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
-# USE_LARS = True
-USE_LARS = False
+    mlp: 1024-1024-{DIM}
 
-# Resnet output 1000 dimensional vectors
-DIM = 1000
+    sim_coeff: 25.0
+    std_coeff: 25.0
+    cov_coeff: 1.0
+    weight_decy: 1e-6
+
+mel:
+    n_fft: 1024
+    win_length: None
+    hop_length: 512
+    n_mels: 128
+
+# torchvision outputs 1000 dimensional vectors
+dim: 1000
 
 # Number of torchsynth voice params
-NPARAMS = 78
+nparams: 78
 
 # torchsynth default
-RATE = 44100
+rate: 44100
 
-
-# PRETRAIN_STEPS = 128
-PRETRAIN_STEPS = 1024000
-
-# PRETRAIN_STEPS_CHECKPOINT_EVERY = 10
-PRETRAIN_STEPS_CHECKPOINT_EVERY = 10000
-# -
-
-# args.mlp = "8192-8192-8192"
-args.mlp = f"1024-1024-{DIM}"
-args.batch_size = BATCH_SIZE
-
-args.sim_coeff = 25.0
-args.std_coeff = 25.0
-args.cov_coeff = 1.0
-# args.sim_coeff = 1.0
-# args.std_coeff = 0.0
-# args.cov_coeff = 0.0
-args.wd = 1e-6
-
-sample_rate = 44100
-
-
-n_fft = 1024
-win_length = None
-hop_length = 512
-n_mels = 128
