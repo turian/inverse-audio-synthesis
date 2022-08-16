@@ -3,5 +3,4 @@ torchsynth
 pynvml
 torchaudio
 torchvision
-torch-audiomentations
 hydra-core
