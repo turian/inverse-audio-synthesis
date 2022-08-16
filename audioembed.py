@@ -1,3 +1,7 @@
+import torch.nn as nn
+from torch import Tensor
+
+
 class AudioEmbedding(nn.Module):
     def __init__(self, pqmf, vision_model):
         super().__init__()

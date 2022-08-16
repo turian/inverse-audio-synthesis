@@ -34,6 +34,9 @@ from torchsynth.synth import Voice
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
+from audio_embedding_to_params import AudioEmbeddingToParams
+from audioembed import AudioEmbedding
+from paramembed import ParamEmbed
 from pqmf import PQMF
 
 
@@ -149,12 +152,12 @@ def app(cfg: DictConfig) -> None:
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
-    parammlp = ParamMLP()
-    parammlp = parammlp.to(device)
+    paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim)
+    paramembed = paramembed.to(device)
 
     audio_embedding = AudioEmbedding(pqmf, vision_model)
 
-    audio_embedding_to_params = AudioEmbeddingToParams()
+    audio_embedding_to_params = AudioEmbeddingToParams(nparams=cfg.nparams, dim=cfg.dim)
     audio_embedding_to_params = audio_embedding_to_params.to(device)
 
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
@@ -188,8 +191,8 @@ def app(cfg: DictConfig) -> None:
         #      }
     )
 
-    # vicreg = VICReg(args=args, backbone1 = parammlp, backbone2 = parammlp)
-    vicreg = VICReg(args=args, backbone1=parammlp, backbone2=audio_embedding)
+    # vicreg = VICReg(args=args, backbone1 = paramembed, backbone2 = paramembed)
+    vicreg = VICReg(args=args, backbone1=paramembed, backbone2=audio_embedding)
     # vicreg = VICReg(args=args, backbone1 = audio_embedding, backbone2 = audio_embedding)
     vicreg = vicreg.to(device)
 

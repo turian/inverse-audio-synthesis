@@ -26,7 +26,7 @@ vicreg:
     cov_coeff: 1.0
     weight_decy: 1e-6
 
-    pretrain_vision_model: True
+    pretrained_vision_model: True
 
 mel:
     n_fft: 1024

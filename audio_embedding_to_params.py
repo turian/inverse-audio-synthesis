@@ -1,12 +1,20 @@
+import torch.nn as nn
+from torch import Tensor
+
+
 class AudioEmbeddingToParams(nn.Module):
-    def __init__(self):
+    def __init__(self, nparams, dim):
         super().__init__()
-        #    self.relu = nn.ReLU(inplace=True)
+        self.nparams = nparams
+        self.dim = dim
         self.relu = nn.ReLU()
-        self.lin1 = nn.Linear(DIM, DIM)
-        self.lin2 = nn.Linear(DIM, DIM)
-        self.lin3 = nn.Linear(DIM, NPARAMS)
+        self.lin1 = nn.Linear(self.nparams, self.dim)
+        self.lin2 = nn.Linear(self.dim, self.dim)
+        self.lin3 = nn.Linear(self.dim, self.dim)
         self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.lin1(x)
 
     def forward(self, x: Tensor) -> Tensor:
         # (batch_size, DIM)
