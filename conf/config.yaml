@@ -2,7 +2,17 @@
 #batch_size: 8
 batch_size: 256
 
+num_batches: 1000000
+
 num_workers: 1
+
+# torchvision outputs 1000 dimensional vectors
+dim: 1000
+
+# Number of torchsynth voice params
+nparams: 78
+
+seed: 42
 
 torchsynth:
     reproducible: False
@@ -18,11 +28,8 @@ vicreg:
     use_lars: False
     #use_lars: True
 
-#    nsteps: 128
-    nsteps: 1024000
-
-#    checkpoint_every_nsteps: 10
-    checkpoint_every_nsteps: 10000
+#    checkpoint_every_nbatches: 10
+    checkpoint_every_nbatches: 10000
 
     mlp: "1024-1024-%d"
 
@@ -44,10 +51,3 @@ mel:
     onesided: True
     n_mels: 128
     mel_scale: "htk"
-    
-
-# torchvision outputs 1000 dimensional vectors
-dim: 1000
-
-# Number of torchsynth voice params
-nparams: 78

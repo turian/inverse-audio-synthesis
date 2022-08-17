@@ -23,6 +23,7 @@ import torchaudio.transforms
 import torchvision
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
+from pytorch_lightning.lite import LightningLite
 from torch import Tensor
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
@@ -100,6 +101,7 @@ def downstream_batch(batch_num, vicreg):
                 )
             }
         )
+
 
 def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     # Use 3 channels for RGB image (not 4 which is PQMF default)
@@ -196,7 +198,9 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
 
     if cfg.vicreg.continue_from:
         if device == "cpu":
-            checkpoint = torch.load(cfg.vicreg.continue_from, map_location=torch.device(device))
+            checkpoint = torch.load(
+                cfg.vicreg.continue_from, map_location=torch.device(device)
+            )
         else:
             checkpoint = torch.load(cfg.vicreg.continue_from)
         vicreg.load_state_dict(checkpoint)
@@ -214,18 +218,35 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     ##        sampler=sampler,
     #    )
 
-    # for step, (audio, params, is_train) in enumerate(loader):
-    for batch_num in tqdm(list(range(cfg.vicreg.nsteps))):
-        if batch_num % 10 == 0:
-            # test
-            continue
-        if batch_num % 10 == 1:
-            # dev
-            continue
+    batch_nums = torch.tensor(list(range(cfg.num_batches)))
+    # batch_num_dataset = torch.utils.data.DataSet(batch_nums)
+    # batch_num_dataset = batch_num_dataset.to(device)
 
-        if batch_num % 10 == 9 and (
-            (batch_num - 9) % cfg.vicreg.checkpoint_every_nsteps == 0
-        ):
+    ntrain_batches = int(cfg.num_batches * 0.8)
+    nval_batches = int(cfg.num_batches * 0.1)
+    ntest_batches = cfg.num_batches - ntrain_batches - nval_batches
+    (
+        train_batch_num_dataset,
+        val_batch_num_dataset,
+        test_batch_num_dataset,
+    ) = torch.utils.data.random_split(
+        batch_nums,
+        [ntrain_batches, nval_batches, ntest_batches],
+        generator=torch.Generator().manual_seed(cfg.seed),
+    )
+
+    train_batch_num_dataloader = torch.utils.data.DataLoader(train_batch_num_dataset)
+    val_batch_num_dataloader = torch.utils.data.DataLoader(val_batch_num_dataset)
+    test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
+
+    # One epoch training
+    for i, batch_num in tqdm(enumerate(train_batch_num_dataloader)):
+        assert batch_num.numpy().shape == (1,)
+        batch_num = batch_num.numpy()
+        assert len(batch_num) == 1
+        batch_num = batch_num[0].item()
+
+        if i % cfg.vicreg.checkpoint_every_nbatches == 0:
             # Time to checkpoint pretraining train
             batch_num_str = f"{'%010d' % batch_num}"
             vicreg_checkpoint_filename = (
@@ -269,7 +290,6 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
         vicreg_scaler.scale(vicreg_loss).backward()
         vicreg_scaler.step(vicreg_optimizer)
         vicreg_scaler.update()
-
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
