@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # vicreg on synth1b1 with 3 channel pqmfs
 #
 # TODO:
@@ -10,7 +11,6 @@ import math
 import sys
 
 import hydra
-import IPython
 import numpy as np
 import soundfile
 import torch
@@ -220,9 +220,12 @@ def app(cfg: DictConfig) -> None:
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.01)
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.000001)
 
-    checkpoint = torch.load(cfg.vicreg.continue_from)
+    if device == "cpu":
+        checkpoint = torch.load(cfg.vicreg.continue_from, map_location=torch.device(device))
+    else:
+        checkpoint = torch.load(cfg.vicreg.continue_from)
     vicreg.load_state_dict(checkpoint)
-    vicreg.cuda()
+    vicrec = vicreg.to(device)
 
     # Only one node for now
     per_device_batch_size = cfg.batch_size

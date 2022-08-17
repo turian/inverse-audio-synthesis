@@ -4,3 +4,4 @@ pynvml
 torchaudio
 torchvision
 hydra-core
+soundfile
