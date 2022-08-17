@@ -1,1 +1,5 @@
 *.sw?
+.venv
+__pycache__/
+outputs/
+wandb/
