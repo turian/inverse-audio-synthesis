@@ -16,6 +16,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -25,12 +26,13 @@ from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -273,8 +275,8 @@ def app(cfg: DictConfig) -> None:
         voice=voice,
         train_batch_num_dataloader=train_batch_num_dataloader,
         val_batch_num_dataloader=val_batch_num_dataloader,
-        test_batch_num_dataloader=test_batch_num_dataloader, 
-        mel_spectrogram=mel_spectrogram
+        test_batch_num_dataloader=test_batch_num_dataloader,
+        mel_spectrogram=mel_spectrogram,
     )
     wandb.finish()
 
