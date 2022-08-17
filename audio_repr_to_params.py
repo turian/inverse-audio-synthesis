@@ -158,6 +158,10 @@ def train(
             predicted_audio_repr = vicreg.backbone2(audio)
             # predicted_audio_repr = vicreg.project(vicreg.backbone2(audio))
 
+        audio_repr_to_params_optimizer.zero_grad()
+        if cfg.audio_repr_to_params.use_lars:
+            with torch.cuda.amp.autocast():
+                audio_repr_to_params_loss = audio_repr_to_params.forward(params, audio)
         audio_repr_to_params.train()
         for w in audio_repr_to_params.parameters():
             w.requires_grad_()
@@ -184,12 +188,7 @@ def train(
             lr = adjust_learning_rate(cfg, audio_repr_to_params_optimizer, loader, step)
             if cfg.log == "wand":
                 wandb.log({"lars_lr": lr})
-            audio_repr_to_params_optimizer.zero_grad()
-            with torch.cuda.amp.autocast():
-                audio_repr_to_params_loss = audio_repr_to_params.forward(params, audio)
         else:
-            audio_repr_to_params_optimizer.zero_grad()
-
             with torch.enable_grad():
                 true_mel = mel_spectrogram(audio)
                 predicted_mel = mel_spectrogram(predicted_audio)
@@ -202,7 +201,7 @@ def train(
         # loss.backward()
         # optimizer.step()
 
-#        print("audio_repr_to_params", audio_repr_to_params.requires_grad)
+        #        print("audio_repr_to_params", audio_repr_to_params.requires_grad)
         print("mel_l1_error", mel_l1_error.requires_grad)
         audio_repr_to_params_scaler.scale(mel_l1_error).backward()
         audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
