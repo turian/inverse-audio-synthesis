@@ -1,5 +1,6 @@
 import math
 import sys
+from tkinter import W
 
 
 import soundfile
@@ -121,7 +122,7 @@ def audio_repr_to_params_batch(
     return mel_l1_error
 
 
-def train(
+def train_orig(
     cfg: DictConfig,
     device: torch.device,
     vicreg: VICReg,
@@ -208,3 +209,90 @@ def train(
         audio_repr_to_params_scaler.scale(mel_l1_error).backward()
         audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
         audio_repr_to_params_scaler.update()
+
+
+def train(
+    cfg: DictConfig,
+    device: torch.device,
+    vicreg: VICReg,
+    voice: Voice,
+    train_batch_num_dataloader,
+    val_batch_num_dataloader,
+    test_batch_num_dataloader,
+    mel_spectrogram,
+) -> None:
+    audio_repr_to_params = AudioRepresentationToParams(nparams=cfg.nparams, dim=cfg.dim)
+    audio_repr_to_params = audio_repr_to_params.to(device)
+    audio_repr_to_params_optimizer = optim.SGD(
+        audio_repr_to_params.parameters(), lr=0.1
+    )
+
+    # One epoch training
+    for audio_repr_to_params_train_batch_num, voice_batch_num in tqdm(
+        enumerate(train_batch_num_dataloader)
+    ):
+        assert voice_batch_num.numpy().shape == (1,)
+        voice_batch_num = voice_batch_num.numpy()
+        assert len(voice_batch_num) == 1
+        voice_batch_num = voice_batch_num[0].item()
+
+        audio, params, is_train = voice(voice_batch_num)
+        audio = audio.unsqueeze(1)
+        audio.requires_grad_(True)
+
+        print("audio", audio.requires_grad)
+        mel_spectrogram.requires_grad_(True)
+        true_mel = mel_spectrogram(audio)
+        print("true_mel", true_mel.requires_grad)
+
+
+        data = torch.rand(cfg.batch_size, 1000)
+        prediction = audio_repr_to_params(data)
+        predicted_params = prediction.T
+
+        print("prediction", prediction.requires_grad)
+
+        for param_name, param_value in zip(
+            voice.get_parameters().keys(), predicted_params
+        ):
+            param_name1, param_name2 = param_name
+            getattr(voice, param_name1).set_parameter_0to1(param_name2, param_value)
+
+        with torch.no_grad():
+            voice.freeze_parameters(voice.get_parameters().keys())
+            # # WHY??????
+            voice = voice.to(device)
+            (
+                predicted_audio,
+                predicted_predicted_params,
+                predicted_is_train,
+            ) = voice(None)
+            voice.unfreeze_all_parameters()
+
+        target = torch.rand(prediction.shape)
+#        loss = torch.mean(torch.abs(prediction - target))
+
+        mel_spectrogram.requires_grad_(True)
+        true_mel = mel_spectrogram(audio)
+        predicted_mel = mel_spectrogram(predicted_audio)
+
+        print("prediction", prediction.requires_grad)
+        audio.requires_grad_()
+        print("audio", audio.requires_grad)
+
+        print("target", true_mel.requires_grad)
+        print("true_mel", true_mel.requires_grad)
+        print("predicted_audio", predicted_audio.requires_grad)
+        print("predicted_mel", predicted_mel.requires_grad)
+        import sys
+        sys.stdout.flush()
+
+        mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
+
+
+        #loss = torch.mean(torch.abs(predicted_predicted_params.T - predicted_params))
+        loss = mel_l1_error
+        loss.backward() 
+        audio_repr_to_params_optimizer.step()
+
+        break
