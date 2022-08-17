@@ -11,7 +11,8 @@ torchsynth:
     rate: 44100
 
 vicreg:
-    continue_from: "vicreg.pth"
+#    continue_from: "vicreg.pth"
+    continue_from: null
 
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False

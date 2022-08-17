@@ -101,33 +101,7 @@ def downstream_batch(batch_num, vicreg):
             }
         )
 
-
-@hydra.main(version_base=None, config_path="conf", config_name="config")
-def app(cfg: DictConfig) -> None:
-    print(OmegaConf.to_yaml(cfg))
-
-    wandb.login()
-
-    # We'll generate cfg.batch_size sounds per batch, 4 seconds each
-    # TODO: On larger GPUs, use larger batch size
-    synthconfig = SynthConfig(
-        batch_size=cfg.batch_size,
-        reproducible=cfg.torchsynth.reproducible,
-        sample_rate=cfg.torchsynth.rate,
-        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
-    )
-
-    voice = Voice(synthconfig=synthconfig)
-
-    # Run on the GPU if it's available
-    # TODO: multigpu
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
-
-    voice = voice.to(device)
-
+def pretrain_vicreg(cfg: DictConfig) -> None:
     # Use 3 channels for RGB image (not 4 which is PQMF default)
     pqmf = PQMF(N=3)
     pqmf = pqmf.to(device)
@@ -220,12 +194,13 @@ def app(cfg: DictConfig) -> None:
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.01)
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.000001)
 
-    if device == "cpu":
-        checkpoint = torch.load(cfg.vicreg.continue_from, map_location=torch.device(device))
-    else:
-        checkpoint = torch.load(cfg.vicreg.continue_from)
-    vicreg.load_state_dict(checkpoint)
-    vicrec = vicreg.to(device)
+    if cfg.vicreg.continue_from:
+        if device == "cpu":
+            checkpoint = torch.load(cfg.vicreg.continue_from, map_location=torch.device(device))
+        else:
+            checkpoint = torch.load(cfg.vicreg.continue_from)
+        vicreg.load_state_dict(checkpoint)
+        vicrec = vicreg.to(device)
 
     # Only one node for now
     per_device_batch_size = cfg.batch_size
@@ -293,6 +268,36 @@ def app(cfg: DictConfig) -> None:
         vicreg_scaler.scale(vicreg_loss).backward()
         vicreg_scaler.step(vicreg_optimizer)
         vicreg_scaler.update()
+
+
+
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def app(cfg: DictConfig) -> None:
+    print(OmegaConf.to_yaml(cfg))
+
+    wandb.login()
+
+    # We'll generate cfg.batch_size sounds per batch, 4 seconds each
+    # TODO: On larger GPUs, use larger batch size
+    synthconfig = SynthConfig(
+        batch_size=cfg.batch_size,
+        reproducible=cfg.torchsynth.reproducible,
+        sample_rate=cfg.torchsynth.rate,
+        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
+    )
+
+    voice = Voice(synthconfig=synthconfig)
+
+    # Run on the GPU if it's available
+    # TODO: multigpu
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    voice = voice.to(device)
+
+    pretrain_vicreg(cfg)
 
     downstream(0, vicreg)
     wandb.finish()
