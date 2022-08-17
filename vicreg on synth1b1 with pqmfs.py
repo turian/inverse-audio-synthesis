@@ -240,7 +240,7 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
     # One epoch training
-    for pretrain_batch_num, voice_batch_num in tqdm(enumerate(train_voice_batch_num_dataloader)):
+    for pretrain_batch_num, voice_batch_num in tqdm(enumerate(train_batch_num_dataloader)):
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
