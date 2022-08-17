@@ -5,9 +5,11 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch import Tensor
-import torch.functional as F
+
+import wandb
 
 
 class VICReg(nn.Module):
@@ -52,6 +54,7 @@ class VICReg(nn.Module):
         # print({"repr_loss": repr_loss.detach().cpu().numpy()})
         # print({"std_loss": std_loss.detach().cpu().numpy()})
         # print({"cov_loss": cov_loss.detach().cpu().numpy()})
+        # TODO: Return these and log them in the main loop
         wandb.log({"repr_loss": repr_loss.detach().cpu().numpy()})
         wandb.log({"std_loss": std_loss.detach().cpu().numpy()})
         wandb.log({"cov_loss": cov_loss.detach().cpu().numpy()})

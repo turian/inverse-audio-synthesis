@@ -15,6 +15,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -23,12 +24,13 @@ import torchvision
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -147,14 +149,14 @@ def app(cfg: DictConfig) -> None:
     # preprocess = weights.transforms()
 
     # torchvision 0.12.0 :(
-    preprocess = torchvision.transforms.Normalize(
+    img_preprocess = torchvision.transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
     paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim)
     paramembed = paramembed.to(device)
 
-    audio_embedding = AudioEmbedding(pqmf, vision_model)
+    audio_embedding = AudioEmbedding(pqmf, vision_model, img_preprocess=img_preprocess)
 
     audio_embedding_to_params = AudioEmbeddingToParams(nparams=cfg.nparams, dim=cfg.dim)
     audio_embedding_to_params = audio_embedding_to_params.to(device)

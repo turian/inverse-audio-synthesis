@@ -1,12 +1,15 @@
 import torch.nn as nn
 from torch import Tensor
 
+from imgscale8 import scale8, unscale8
+
 
 class AudioEmbedding(nn.Module):
-    def __init__(self, pqmf, vision_model):
+    def __init__(self, pqmf, vision_model, img_preprocess):
         super().__init__()
         self.pqmf = pqmf
         self.vision_model = vision_model
+        self.img_preprocess = img_preprocess
 
     def forward(self, audio):
         x = audio
@@ -21,7 +24,7 @@ class AudioEmbedding(nn.Module):
         zimg8 = zimg8.float() / 255.0
 
         # Apply inference preprocessing transforms
-        zimg8preprocess = preprocess(zimg8)
+        zimg8preprocess = self.img_preprocess(zimg8)
 
         y = self.vision_model(zimg8preprocess)
         return y
