@@ -110,10 +110,10 @@ def downstream_batch(
     """
 
 def downstream(
-    cfg,
-    device,
-    vicreg,
-    voice,
+    cfg ->  DictConfig,
+    device -> torch.device,
+    vicreg -> VICReg,
+    voice -> Voice,
     train_batch_num_dataloader,
     val_batch_num_dataloader,
     test_batch_num_dataloader,
@@ -125,28 +125,10 @@ def downstream(
     for downstream_train_batch_num, voice_batch_num in tqdm(
         enumerate(train_batch_num_dataloader)
     ):
-        break
-
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
         voice_batch_num = voice_batch_num[0].item()
-
-        if cfg.log == "wand":
-            if downstream_train_batch_num % cfg.downstream.checkpoint_every_nbatches == 0:
-                # Time to checkpoint pretraining train
-                voice_batch_num_str = f"{'%010d' % downstream_train_batch_num}"
-                downstream_checkpoint_filename = (
-                    f"/tmp/downstream_model_{utcnowstr}-{downstream_train_batch_num}.pth"
-                )
-                # print(downstream_checkpoint_filename)
-                torch.save(downstream.state_dict(), downstream_checkpoint_filename)
-                artifact = wandb.Artifact(
-                    f"downstream_model-{voice_batch_num_str}", type="model"
-                )
-                artifact.add_file(downstream_checkpoint_filename)
-                run.log_artifact(artifact)
-                # run.join()
 
         audio, params, is_train = voice(voice_batch_num)
         audio = audio.unsqueeze(1)

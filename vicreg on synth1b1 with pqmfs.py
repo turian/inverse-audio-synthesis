@@ -41,7 +41,7 @@ from pqmf import PQMF
 from utils import utcnowstr
 from vicreg import VICReg
 
-from downstream import downstream_batch
+from downstream import downstream
 
 
 def pretrain_vicreg(
@@ -266,16 +266,15 @@ def app(cfg: DictConfig) -> None:
         cfg, device, voice, train_batch_num_dataloader, mel_spectrogram
     )
 
-    downstream_batch(
-        cfg,
-        device,
-        0,
-        vicreg,
-        voice,
-        train_batch_num_dataloader,
-        val_batch_num_dataloader,
-        test_batch_num_dataloader,
-        mel_spectrogram,
+    downstream(
+        cfg=cfg,
+        device=device,
+        vicreg=vicreg,
+        voice=voice,
+        train_batch_num_dataloader=train_batch_num_dataloader,
+        val_batch_num_dataloader=val_batch_num_dataloader,
+        test_batch_num_dataloader=test_batch_num_dataloader, 
+        mel_spectrogram=mel_spectrogram
     )
     wandb.finish()
 
