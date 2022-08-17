@@ -240,26 +240,26 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
     # One epoch training
-    for i, batch_num in tqdm(enumerate(train_batch_num_dataloader)):
-        assert batch_num.numpy().shape == (1,)
-        batch_num = batch_num.numpy()
-        assert len(batch_num) == 1
-        batch_num = batch_num[0].item()
+    for pretrain_batch_num, voice_batch_num in tqdm(enumerate(train_voice_batch_num_dataloader)):
+        assert voice_batch_num.numpy().shape == (1,)
+        voice_batch_num = voice_batch_num.numpy()
+        assert len(voice_batch_num) == 1
+        voice_batch_num = voice_batch_num[0].item()
 
-        if i % cfg.vicreg.checkpoint_every_nbatches == 0:
+        if pretrain_batch_num % cfg.vicreg.checkpoint_every_nbatches == 0:
             # Time to checkpoint pretraining train
-            batch_num_str = f"{'%010d' % batch_num}"
+            voice_batch_num_str = f"{'%010d' % pretrain_batch_num}"
             vicreg_checkpoint_filename = (
-                f"/tmp/vicreg_model_{utcnowstr}-{batch_num_str}.pth"
+                f"/tmp/vicreg_model_{utcnowstr}-{pretrain_batch_num}.pth"
             )
             # print(vicreg_checkpoint_filename)
             torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
-            artifact = wandb.Artifact(f"vicreg_model-{batch_num_str}", type="model")
+            artifact = wandb.Artifact(f"vicreg_model-{voice_batch_num_str}", type="model")
             artifact.add_file(vicreg_checkpoint_filename)
             run.log_artifact(artifact)
             # run.join()
 
-        audio, params, is_train = voice(batch_num)
+        audio, params, is_train = voice(voice_batch_num)
         audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
