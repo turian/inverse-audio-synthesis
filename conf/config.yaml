@@ -1,6 +1,6 @@
 # Use the largest batchsize possible
-#batch_size: 8
-batch_size: 256
+batch_size: 8
+#batch_size: 256
 
 num_batches: 50000
 
@@ -42,6 +42,9 @@ vicreg:
     weight_decy: 1e-6
 
     pretrained_vision_model: True
+
+audio_repr_to_params:
+    use_lars: False
 
 mel:
     n_fft: 1024

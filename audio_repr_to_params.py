@@ -1,5 +1,25 @@
+import math
+import sys
+
+import soundfile
+import torch
 import torch.nn as nn
+
+# import torch.distributed as dist
+import torch.optim as optim
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
+
+# from torch_audiomentations import Compose, Gain, PolarityInversion
+from torchsynth.synth import Voice
+
+# from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from tqdm.auto import tqdm
+
+import wandb
+from utils import utcnowstr
+from vicreg import VICReg
 
 
 class AudioRepresentationToParams(nn.Module):
@@ -48,8 +68,6 @@ def audio_repr_to_params_batch(
         # vicreg.project(vicreg.backbone2(test_true_audio.unsqueeze(1)))
         test_predicted_audio_representation.shape
 
-    audio_repr_to_params = AudioRepresentationToParams(nparams=cfg.nparams, dim=cfg.dim)
-    audio_repr_to_params = audio_repr_to_params.to(device)
     test_predicted_params = audio_repr_to_params.forward(
         test_predicted_audio_representation
     ).T
@@ -102,7 +120,7 @@ def audio_repr_to_params_batch(
     return mel_l1_error
 
 
-def audio_repr_to_params(
+def train(
     cfg: DictConfig,
     device: torch.device,
     vicreg: VICReg,
@@ -112,7 +130,13 @@ def audio_repr_to_params(
     test_batch_num_dataloader,
     mel_spectrogram,
 ) -> None:
-    audio_repr_to_params_optimizer = optim.SGD(audio_repr_to_params.parameters(), lr=0.1)
+    audio_repr_to_params = AudioRepresentationToParams(nparams=cfg.nparams, dim=cfg.dim)
+    audio_repr_to_params = audio_repr_to_params.to(device)
+    audio_repr_to_params_optimizer = optim.SGD(
+        audio_repr_to_params.parameters(), lr=0.1
+    )
+
+    audio_repr_to_params_scaler = torch.cuda.amp.GradScaler()
 
     # One epoch training
     for audio_repr_to_params_train_batch_num, voice_batch_num in tqdm(
@@ -123,9 +147,36 @@ def audio_repr_to_params(
         assert len(voice_batch_num) == 1
         voice_batch_num = voice_batch_num[0].item()
 
-        audio, params, is_train = voice(voice_batch_num)
-        audio = audio.unsqueeze(1)
-        #  audio2 = apply_augmentation(audio)
+        with torch.no_grad():
+            audio, params, is_train = voice(voice_batch_num)
+            audio = audio.unsqueeze(1)
+            #  audio2 = apply_augmentation(audio)
+
+        # TODO: Tune vicreg?
+        with torch.no_grad():
+            # Don't use projector to embedding, just the representation from the backbone
+            predicted_audio_repr = vicreg.backbone2(audio)
+            # predicted_audio_repr = vicreg.project(vicreg.backbone2(audio))
+
+        audio_repr_to_params.train()
+        predicted_params = audio_repr_to_params.forward(predicted_audio_repr).T
+
+        for param_name, param_value in zip(
+            voice.get_parameters().keys(), predicted_params
+        ):
+            param_name1, param_name2 = param_name
+            getattr(voice, param_name1).set_parameter_0to1(param_name2, param_value)
+
+        with torch.no_grad():
+            voice.freeze_parameters(voice.get_parameters().keys())
+            # # WHY??????
+            voice = voice.to(device)
+            (
+                predicted_audio,
+                predicted_predicted_params,
+                predicted_is_train,
+            ) = voice(None)
+            voice.unfreeze_all_parameters()
 
         if cfg.audio_repr_to_params.use_lars:
             lr = adjust_learning_rate(cfg, audio_repr_to_params_optimizer, loader, step)
@@ -136,23 +187,18 @@ def audio_repr_to_params(
                 audio_repr_to_params_loss = audio_repr_to_params.forward(params, audio)
         else:
             audio_repr_to_params_optimizer.zero_grad()
-            audio_repr_to_params_loss = audio_repr_to_params.forward(params, audio)
 
-        #  loss = audio_repr_to_params(audio2, audio)
-        audio_repr_to_params_loss = audio_repr_to_params(params, audio)
-        #  loss = audio_repr_to_params(params, params)
-        audio_repr_to_params_lossval = audio_repr_to_params_loss.detach().cpu().numpy()
-        if math.isnan(audio_repr_to_params_lossval):
-            print("NAN")
-            sys.stdout.flush()
-            continue
-        #            break
-        if cfg.log == "wand":
-            wandb.log({"audio_repr_to_params_loss": audio_repr_to_params_lossval})
+            true_mel = mel_spectrogram(audio)
+            predicted_mel = mel_spectrogram(predicted_audio)
+
+            mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
+
+            if cfg.log == "wand":
+                wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error})
 
         # loss.backward()
         # optimizer.step()
 
-        audio_repr_to_params_scaler.scale(audio_repr_to_params_loss).backward()
+        audio_repr_to_params_scaler.scale(mel_l1_error).backward()
         audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
         audio_repr_to_params_scaler.update()

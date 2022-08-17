@@ -35,15 +35,13 @@ from torchsynth.synth import Voice
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
+import audio_repr_to_params
 import wandb
-from audio_repr_to_params import AudioRepresentationToParams
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
 from utils import utcnowstr
 from vicreg import VICReg
-
-from downstream import downstream
 
 
 def pretrain_vicreg(
@@ -268,7 +266,7 @@ def app(cfg: DictConfig) -> None:
         cfg, device, voice, train_batch_num_dataloader, mel_spectrogram
     )
 
-    downstream(
+    audio_repr_to_params.train(
         cfg=cfg,
         device=device,
         vicreg=vicreg,
@@ -278,7 +276,8 @@ def app(cfg: DictConfig) -> None:
         test_batch_num_dataloader=test_batch_num_dataloader,
         mel_spectrogram=mel_spectrogram,
     )
-    wandb.finish()
+    if cfg.log == "wand":
+        wandb.finish()
 
 
 if __name__ == "__main__":
