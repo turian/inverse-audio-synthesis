@@ -2,24 +2,27 @@
 # https://github.com/facebookresearch/vicreg/blob/main/main_vicreg.py
 # We remove the backbone because we do them externally
 # And we remove torch.dist
-import torch.nn as nn
-from torch import Tensor
 
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch import Tensor
+import torch.functional as F
 
 
 class VICReg(nn.Module):
-    def __init__(self, args, backbone1, backbone2):
+    def __init__(self, cfg, backbone1, backbone2):
         super().__init__()
-        self.args = args
-        self.num_features = int(args.mlp.split("-")[-1])
+        self.cfg = cfg
+        self.num_features = cfg.dim
         #        self.backbone = nn.Identity()
         self.backbone1 = backbone1
         self.backbone2 = backbone2
         self.embedding = 1000
-        #        self.backbone, self.embedding = resnet.__dict__[args.arch](
+        #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )
-        self.projector = Projector(args, self.embedding)
+        self.projector = Projector(cfg, self.embedding)
 
     def forward(self, x, y):
         #        x = self.projector(self.backbone(x))
@@ -40,8 +43,8 @@ class VICReg(nn.Module):
         std_y = torch.sqrt(y.var(dim=0) + 0.0001)
         std_loss = torch.mean(F.relu(1 - std_x)) / 2 + torch.mean(F.relu(1 - std_y)) / 2
 
-        cov_x = (x.T @ x) / (self.args.batch_size - 1)
-        cov_y = (y.T @ y) / (self.args.batch_size - 1)
+        cov_x = (x.T @ x) / (self.cfg.batch_size - 1)
+        cov_y = (y.T @ y) / (self.cfg.batch_size - 1)
         cov_loss = off_diagonal(cov_x).pow_(2).sum().div(
             self.num_features
         ) + off_diagonal(cov_y).pow_(2).sum().div(self.num_features)
@@ -54,15 +57,15 @@ class VICReg(nn.Module):
         wandb.log({"cov_loss": cov_loss.detach().cpu().numpy()})
 
         loss = (
-            self.args.sim_coeff * repr_loss
-            + self.args.std_coeff * std_loss
-            + self.args.cov_coeff * cov_loss
+            self.cfg.vicreg.sim_coeff * repr_loss
+            + self.cfg.vicreg.std_coeff * std_loss
+            + self.cfg.vicreg.cov_coeff * cov_loss
         )
         return loss
 
 
-def Projector(args, embedding):
-    mlp_spec = f"{embedding}-{args.mlp}"
+def Projector(cfg, embedding):
+    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.dim
     layers = []
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):
@@ -159,10 +162,10 @@ def exclude_bias_and_norm(p):
     return p.ndim == 1
 
 
-def adjust_learning_rate(args, optimizer, loader, step):
-    max_steps = args.epochs * len(loader)
+def adjust_learning_rate(cfg, optimizer, loader, step):
+    max_steps = cfg.vicreg.epochs * len(loader)
     warmup_steps = 10 * len(loader)
-    base_lr = args.base_lr * args.batch_size / 256
+    base_lr = cfg.vicrec.base_lr * cfg.batch_size / 256
     if step < warmup_steps:
         lr = base_lr * step / warmup_steps
     else:

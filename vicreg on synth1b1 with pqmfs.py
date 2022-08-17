@@ -8,8 +8,6 @@
 import datetime
 import math
 
-from vicreg import VICReg
-
 import hydra
 import IPython
 import numpy as np
@@ -17,29 +15,28 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
 import torchaudio.transforms
 import torchvision
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from torch import Tensor
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
+import wandb
 from audio_embedding_to_params import AudioEmbeddingToParams
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
+from vicreg import VICReg
 
 
 def downstream_batch(batch_num, vicreg):
@@ -109,7 +106,7 @@ def app(cfg: DictConfig) -> None:
 
     wandb.login()
 
-    # We'll generate BATCH_SIZE sounds per batch, 4 seconds each
+    # We'll generate cfg.batch_size sounds per batch, 4 seconds each
     # TODO: On larger GPUs, use larger batch size
     synthconfig = SynthConfig(
         batch_size=cfg.batch_size,
@@ -193,21 +190,21 @@ def app(cfg: DictConfig) -> None:
         #      }
     )
 
-    # vicreg = VICReg(args=args, backbone1 = paramembed, backbone2 = paramembed)
-    vicreg = VICReg(args=args, backbone1=paramembed, backbone2=audio_embedding)
-    # vicreg = VICReg(args=args, backbone1 = audio_embedding, backbone2 = audio_embedding)
+    # vicreg = VICReg(cfg=cfg, backbone1 = paramembed, backbone2 = paramembed)
+    vicreg = VICReg(cfg=cfg, backbone1=paramembed, backbone2=audio_embedding)
+    # vicreg = VICReg(cfg=cfg, backbone1 = audio_embedding, backbone2 = audio_embedding)
     vicreg = vicreg.to(device)
 
     # Probably could use a smarter optimizer?
     # vicreg_optimizer = optim.Adam(vicreg.parameters(), lr=0.000001)
     # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.0032, momentum=0.9)
 
-    if USE_LARS:
+    if cfg.vicreg.use_lars:
         ## LARS is fucked in our tests. Maybe because we're not distributing and haven't mucked with the FB code enough
         vicreg_optimizer = LARS(
             vicreg.parameters(),
             lr=0,
-            weight_decay=args.wd,
+            weight_decay=cfg.vicreg.wd,
             weight_decay_filter=exclude_bias_and_norm,
             lars_adaptation_filter=exclude_bias_and_norm,
         )
@@ -222,19 +219,19 @@ def app(cfg: DictConfig) -> None:
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.000001)
 
     # Only one node for now
-    per_device_batch_size = BATCH_SIZE
-    args.num_workers = 1
+    per_device_batch_size = cfg.batch_size
+    cfg.num_workers = 1
 
     # loader = torch.utils.data.DataLoader(
     #        dataset,
     #        batch_size=per_device_batch_size,
-    #        num_workers=args.num_workers,
+    #        num_workers=cfg.num_workers,
     ##        pin_memory=True,
     ##        sampler=sampler,
     #    )
 
     # for step, (audio, params, is_train) in enumerate(loader):
-    for batch_num in tqdm(list(range(PRETRAIN_STEPS))):
+    for batch_num in tqdm(list(range(cfg.vicreg.nsteps))):
         if batch_num % 10 == 0:
             # test
             continue
@@ -243,7 +240,7 @@ def app(cfg: DictConfig) -> None:
             continue
 
         if batch_num % 10 == 9 and (
-            (batch_num - 9) % PRETRAIN_STEPS_CHECKPOINT_EVERY == 0
+            (batch_num - 9) % cfg.vicreg.checkpoint_every_nsteps == 0
         ):
             # Time to checkpoint pretraining train
             batch_num_str = f"{'%010d' % batch_num}"
@@ -261,8 +258,8 @@ def app(cfg: DictConfig) -> None:
         audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
-        if USE_LARS:
-            lr = adjust_learning_rate(args, vicreg_optimizer, loader, step)
+        if cfg.vicreg.use_lars:
+            lr = adjust_learning_rate(cfg, vicreg_optimizer, loader, step)
             wandb.log({"lars_lr": lr})
             vicreg_optimizer.zero_grad()
             with torch.cuda.amp.autocast():
