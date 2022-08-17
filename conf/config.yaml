@@ -1,6 +1,6 @@
 # Use the largest batchsize possible
-batch_size: 8
-#batch_size: 256
+#batch_size: 8
+batch_size: 256
 
 num_workers: 1
 
@@ -11,15 +11,17 @@ torchsynth:
     rate: 44100
 
 vicreg:
+    continue_from: "../vigreg.pth"
+
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False
     #use_lars: True
 
-    nsteps: 128
-#    nsteps: 1024000
+#    nsteps: 128
+    nsteps: 1024000
 
-    checkpoint_every_nsteps: 10
-#    checkpoint_every_nsteps: 10000
+#    checkpoint_every_nsteps: 10
+    checkpoint_every_nsteps: 10000
 
     mlp: "1024-1024-%d"
 

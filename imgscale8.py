@@ -8,7 +8,9 @@ minval = -1.6843455
 # TODO: Would be smarter but trickier to use quantile scaling
 def scale8(x, xmin=minval, xmax=maxval):
     xscale = (x - xmin) / (xmax - xmin) * 255
-    return torch.clip(xscale, 0, 255).type(torch.ByteTensor)
+    # t = torch.clip(xscale, 0, 255).type(torch.ByteTensor)
+    t = torch.clip(xscale, 0, 255).to(torch.uint8)
+    return t
 
 
 #    return torch.clip(xscale, 0, 255).type(torch.cuda.ByteTensor)

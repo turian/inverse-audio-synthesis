@@ -7,6 +7,7 @@
 
 import datetime
 import math
+import sys
 
 import hydra
 import IPython
@@ -15,7 +16,6 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -24,13 +24,12 @@ import torchvision
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from torch import Tensor
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -38,6 +37,7 @@ from audio_embedding_to_params import AudioEmbeddingToParams
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
+from utils import utcnowstr
 from vicreg import VICReg
 
 
@@ -220,6 +220,10 @@ def app(cfg: DictConfig) -> None:
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.01)
         # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.000001)
 
+    checkpoint = torch.load(cfg.vicreg.continue_from)
+    vicreg.load_state_dict(checkpoint)
+    vicreg.cuda()
+
     # Only one node for now
     per_device_batch_size = cfg.batch_size
     cfg.num_workers = 1
@@ -275,7 +279,9 @@ def app(cfg: DictConfig) -> None:
         vicreg_lossval = vicreg_loss.detach().cpu().numpy()
         if math.isnan(vicreg_lossval):
             print("NAN")
-            break
+            sys.stdout.flush()
+            continue
+        #            break
         wandb.log({"vicreg_loss": vicreg_lossval})
 
         # loss.backward()
