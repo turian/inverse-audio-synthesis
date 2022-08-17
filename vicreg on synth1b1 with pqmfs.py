@@ -41,6 +41,8 @@ from pqmf import PQMF
 from utils import utcnowstr
 from vicreg import VICReg
 
+from downstream import downstream_batch
+
 
 def pretrain_vicreg(
     cfg: DictConfig, device, voice, train_batch_num_dataloader, mel_spectrogram
@@ -179,80 +181,6 @@ def pretrain_vicreg(
         vicreg_scaler.update()
 
     return vicreg
-
-
-def downstream_batch(
-    cfg,
-    device,
-    batch_num,
-    vicreg,
-    voice,
-    train_batch_num_dataloader,
-    val_batch_num_dataloader,
-    test_batch_num_dataloader,
-    mel_spectrogram,
-):
-    test_true_audio, test_true_params, test_true_is_train = voice(batch_num)
-
-    # Don't use projector to embedding, just the representation from the backbone
-    test_predicted_audio_representation = vicreg.backbone2(test_true_audio.unsqueeze(1))
-    # vicreg.project(vicreg.backbone2(test_true_audio.unsqueeze(1)))
-    test_predicted_audio_representation.shape
-
-    audio_repr_to_params = AudioRepresentationToParams(nparams=cfg.nparams, dim=cfg.dim)
-    audio_repr_to_params = audio_repr_to_params.to(device)
-    test_predicted_params = audio_repr_to_params.forward(
-        test_predicted_audio_representation
-    ).T
-
-    for param_name, param_value in zip(
-        voice.get_parameters().keys(), test_predicted_params
-    ):
-        param_name1, param_name2 = param_name
-        getattr(voice, param_name1).set_parameter_0to1(param_name2, param_value)
-
-    # TODO: Disable gradients
-
-    voice.freeze_parameters(voice.get_parameters().keys())
-    # # WHY??????
-    voice = voice.to(device)
-    (
-        test_predicted_audio,
-        test_predicted_predicted_params,
-        test_predicted_is_train,
-    ) = voice(None)
-    voice.unfreeze_all_parameters()
-
-    test_true_mel = mel_spectrogram(test_true_audio)
-    test_predicted_mel = mel_spectrogram(test_predicted_audio)
-
-    mel_l1_error = torch.mean(torch.abs(test_true_mel - test_predicted_mel))
-    print(mel_l1_error)
-
-    if cfg.log == "wand":
-        for i in tqdm(list(range(8))):
-            silence = torch.zeros(int(RATE * 0.5))
-            silence = silence.to(device)
-            test_true_predict_audio = torch.cat(
-                [test_true_audio[i], silence, test_predicted_audio[i]]
-            )
-            this_test_wav_filename = f"test_{'%010d' % batch_num}_{'%03d' % i}.wav"
-            this_test_wav_numpy = (
-                test_true_predict_audio.unsqueeze(1).detach().cpu().numpy()
-            )
-            soundfile.write(this_test_wav_filename, this_test_wav_numpy, RATE)
-            artifact = wandb.Artifact(this_test_wav_filename, type="model")
-            artifact.add_file(vicreg_checkpoint_filename)
-            run.log_artifact(artifact)
-            wandb.log(
-                {
-                    this_test_wav_filename: wandb.Audio(
-                        this_test_wav_numpy,
-                        caption=this_test_wav_filename,
-                        sample_rate=RATE,
-                    )
-                }
-            )
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
