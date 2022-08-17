@@ -51,13 +51,11 @@ class VICReg(nn.Module):
             self.num_features
         ) + off_diagonal(cov_y).pow_(2).sum().div(self.num_features)
 
-        # print({"repr_loss": repr_loss.detach().cpu().numpy()})
-        # print({"std_loss": std_loss.detach().cpu().numpy()})
-        # print({"cov_loss": cov_loss.detach().cpu().numpy()})
         # TODO: Return these and log them in the main loop
-        wandb.log({"repr_loss": repr_loss.detach().cpu().numpy()})
-        wandb.log({"std_loss": std_loss.detach().cpu().numpy()})
-        wandb.log({"cov_loss": cov_loss.detach().cpu().numpy()})
+        if cfg.log == "wand":
+            wandb.log({"repr_loss": repr_loss.detach().cpu().numpy()})
+            wandb.log({"std_loss": std_loss.detach().cpu().numpy()})
+            wandb.log({"cov_loss": cov_loss.detach().cpu().numpy()})
 
         loss = (
             self.cfg.vicreg.sim_coeff * repr_loss

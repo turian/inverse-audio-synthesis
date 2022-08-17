@@ -6,6 +6,9 @@ num_batches: 50000
 
 num_workers: 1
 
+#log: wandb
+log: null
+
 # torchvision outputs 1000 dimensional vectors
 dim: 1000
 
