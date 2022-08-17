@@ -159,6 +159,8 @@ def train(
             # predicted_audio_repr = vicreg.project(vicreg.backbone2(audio))
 
         audio_repr_to_params.train()
+        for w in audio_repr_to_params.parameters():
+            w.requires_grad_()
         predicted_params = audio_repr_to_params.forward(predicted_audio_repr).T
 
         for param_name, param_value in zip(
@@ -188,10 +190,11 @@ def train(
         else:
             audio_repr_to_params_optimizer.zero_grad()
 
-            true_mel = mel_spectrogram(audio)
-            predicted_mel = mel_spectrogram(predicted_audio)
+            with torch.enable_grad():
+                true_mel = mel_spectrogram(audio)
+                predicted_mel = mel_spectrogram(predicted_audio)
 
-            mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
+                mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
 
             if cfg.log == "wand":
                 wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error})
@@ -199,6 +202,8 @@ def train(
         # loss.backward()
         # optimizer.step()
 
+#        print("audio_repr_to_params", audio_repr_to_params.requires_grad)
+        print("mel_l1_error", mel_l1_error.requires_grad)
         audio_repr_to_params_scaler.scale(mel_l1_error).backward()
         audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
         audio_repr_to_params_scaler.update()
