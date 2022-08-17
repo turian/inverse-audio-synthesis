@@ -240,7 +240,9 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
     # One epoch training
-    for pretrain_batch_num, voice_batch_num in tqdm(enumerate(train_batch_num_dataloader)):
+    for pretrain_batch_num, voice_batch_num in tqdm(
+        enumerate(train_batch_num_dataloader)
+    ):
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
@@ -254,7 +256,9 @@ def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
             )
             # print(vicreg_checkpoint_filename)
             torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
-            artifact = wandb.Artifact(f"vicreg_model-{voice_batch_num_str}", type="model")
+            artifact = wandb.Artifact(
+                f"vicreg_model-{voice_batch_num_str}", type="model"
+            )
             artifact.add_file(vicreg_checkpoint_filename)
             run.log_artifact(artifact)
             # run.join()
