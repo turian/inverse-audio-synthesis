@@ -101,7 +101,7 @@ def downstream_batch(batch_num, vicreg):
             }
         )
 
-def pretrain_vicreg(cfg: DictConfig) -> None:
+def pretrain_vicreg(cfg: DictConfig, device, voice) -> None:
     # Use 3 channels for RGB image (not 4 which is PQMF default)
     pqmf = PQMF(N=3)
     pqmf = pqmf.to(device)
@@ -249,6 +249,7 @@ def pretrain_vicreg(cfg: DictConfig) -> None:
             with torch.cuda.amp.autocast():
                 vicreg_loss = vicreg.forward(params, audio)
         else:
+            vicreg_optimizer.zero_grad()
             vicreg_loss = vicreg.forward(params, audio)
 
         #  loss = vicreg(audio2, audio)
@@ -297,7 +298,7 @@ def app(cfg: DictConfig) -> None:
 
     voice = voice.to(device)
 
-    pretrain_vicreg(cfg)
+    pretrain_vicreg(cfg, device, voice)
 
     downstream(0, vicreg)
     wandb.finish()
