@@ -1,13 +1,15 @@
 # Use the largest batchsize possible
+# Smaller for downstream???? IDK WHY
 batch_size: 8
+# Good for pretrain:
 #batch_size: 256
 
 num_batches: 50000
 
 num_workers: 1
 
-#log: wandb
-log: null
+log: wand
+#log: null
 
 # torchvision outputs 1000 dimensional vectors
 dim: 1000

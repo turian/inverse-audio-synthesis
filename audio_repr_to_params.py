@@ -131,11 +131,12 @@ def train(
 ) -> None:
     audio_repr_to_params = AudioRepresentationToParams(nparams=cfg.nparams, dim=cfg.dim)
     audio_repr_to_params = audio_repr_to_params.to(device)
+    # TODO: PUt this and vicreg lr in conf
     audio_repr_to_params_optimizer = optim.SGD(
         audio_repr_to_params.parameters(), lr=0.1
     )
 
-    audio_repr_to_params_scaler = torch.cuda.amp.GradScaler()
+#    audio_repr_to_params_scaler = torch.cuda.amp.GradScaler()
 
     # One epoch training
     for audio_repr_to_params_train_batch_num, voice_batch_num in tqdm(
@@ -144,7 +145,8 @@ def train(
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
-        voice_batch_num = voice_batch_num[0].item()
+#        voice_batch_num = voice_batch_num[0].item()
+        voice_batch_num = 0
 
         with torch.no_grad():
             audio, params, is_train = voice(voice_batch_num)
@@ -197,11 +199,12 @@ def train(
             mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
 
         if cfg.log == "wand":
-            wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error})
+            wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error.detach().cpu().numpy()})
 
-        # loss.backward()
-        # optimizer.step()
+        print(mel_l1_error)
+        mel_l1_error.backward()
+        audio_repr_to_params_optimizer.step()
 
-        audio_repr_to_params_scaler.scale(mel_l1_error).backward()
-        audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
-        audio_repr_to_params_scaler.update()
+#        audio_repr_to_params_scaler.scale(mel_l1_error).backward()
+#        audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
+#        audio_repr_to_params_scaler.update()
