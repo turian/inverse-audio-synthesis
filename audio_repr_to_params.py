@@ -1,6 +1,9 @@
 import math
 import sys
 
+
+import auraloss
+
 import soundfile
 import torch
 import torch.nn as nn
@@ -165,7 +168,8 @@ def train(
         audio_repr_to_params.train()
         for w in audio_repr_to_params.parameters():
             w.requires_grad_()
-        predicted_params = audio_repr_to_params.forward(predicted_audio_repr).T
+        predicted_params = audio_repr_to_params.forward(predicted_audio_repr)
+        predicted_params = predicted_params.T
 
         for param_name, param_value in zip(
             voice.get_parameters().keys(), predicted_params
@@ -189,14 +193,17 @@ def train(
             if cfg.log == "wand":
                 wandb.log({"lars_lr": lr})
         else:
-            with torch.enable_grad():
-                true_mel = mel_spectrogram(audio)
-                predicted_mel = mel_spectrogram(predicted_audio)
+            mrstft = auraloss.freq.MultiResolutionSTFTLoss()
+            mel_l1_error = mrstft(audio, predicted_audio)
+            """
+            true_mel = mel_spectrogram(audio)
+            predicted_mel = mel_spectrogram(predicted_audio)
 
-                mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
+            mel_l1_error = torch.mean(torch.abs(true_mel - predicted_mel))
+            """
 
-            if cfg.log == "wand":
-                wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error})
+        if cfg.log == "wand":
+            wandb.log({"audio_repr_to_params/mel_l1_error": mel_l1_error})
 
         # loss.backward()
         # optimizer.step()

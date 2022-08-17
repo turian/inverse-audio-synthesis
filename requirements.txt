@@ -3,6 +3,6 @@ torchsynth
 pynvml
 torchaudio
 torchvision
-hydra-core
+hydra - core
 soundfile
 wandb
