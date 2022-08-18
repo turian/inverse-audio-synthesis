@@ -4,7 +4,7 @@
 # Good for pretrain:
 batch_size: 256
 
-num_batches: 50000
+num_batches: 50000000
 
 num_workers: 1
 
