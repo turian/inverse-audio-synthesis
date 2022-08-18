@@ -1,8 +1,8 @@
 torch
-torchsynth
 pynvml
 torchaudio
 torchvision
 hydra - core
 soundfile
 wandb
+git+https://github.com/torchsynth/torchsynth

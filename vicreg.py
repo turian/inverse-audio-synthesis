@@ -52,7 +52,7 @@ class VICReg(nn.Module):
         ) + off_diagonal(cov_y).pow_(2).sum().div(self.num_features)
 
         # TODO: Return these and log them in the main loop
-        if cfg.log == "wand":
+        if self.cfg.log == "wand":
             wandb.log({"repr_loss": repr_loss.detach().cpu().numpy()})
             wandb.log({"std_loss": std_loss.detach().cpu().numpy()})
             wandb.log({"cov_loss": cov_loss.detach().cpu().numpy()})

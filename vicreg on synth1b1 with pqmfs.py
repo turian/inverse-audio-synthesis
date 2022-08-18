@@ -43,8 +43,11 @@ from vicreg import VICReg
 
 
 def pretrain_vicreg(
-    cfg: DictConfig, device, voice, train_batch_num_dataloader, mel_spectrogram
+    cfg: DictConfig, device, voice, train_batch_num_dataloader, mel_spectrogram,
+    wandrun
 ) -> None:
+    vicreg_scaler = torch.cuda.amp.GradScaler()
+
     # Use 3 channels for RGB image (not 4 which is PQMF default)
     pqmf = PQMF(N=3)
     pqmf = pqmf.to(device)
@@ -121,8 +124,6 @@ def pretrain_vicreg(
     for pretrain_batch_num, voice_batch_num in tqdm(
         enumerate(train_batch_num_dataloader)
     ):
-        break
-
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
@@ -141,7 +142,7 @@ def pretrain_vicreg(
                     f"vicreg_model-{voice_batch_num_str}", type="model"
                 )
                 artifact.add_file(vicreg_checkpoint_filename)
-                run.log_artifact(artifact)
+                wandrun.log_artifact(artifact)
                 # run.join()
 
         audio, params, is_train = voice(voice_batch_num)
@@ -246,7 +247,7 @@ def app(cfg: DictConfig) -> None:
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
     if cfg.log == "wand":
-        run = wandb.init(
+        wandrun = wandb.init(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
             #      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
@@ -259,9 +260,11 @@ def app(cfg: DictConfig) -> None:
             #      "epochs": 10,
             #      }
         )
+    else:
+        wandrun = None
 
     vicreg = pretrain_vicreg(
-        cfg, device, voice, train_batch_num_dataloader, mel_spectrogram
+        cfg, device, voice, train_batch_num_dataloader, mel_spectrogram, wandrun
     )
 
     """
@@ -275,9 +278,10 @@ def app(cfg: DictConfig) -> None:
         test_batch_num_dataloader=test_batch_num_dataloader,
         mel_spectrogram=mel_spectrogram,
     )
+    """
+
     if cfg.log == "wand":
         wandb.finish()
-    """
 
 
 if __name__ == "__main__":

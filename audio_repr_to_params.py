@@ -227,6 +227,8 @@ def train_params_match(
         audio_repr_to_params.parameters(), lr=0.1
     )
 
+    vicreg.eval()
+
 #    audio_repr_to_params_scaler = torch.cuda.amp.GradScaler()
 
     # One epoch training
