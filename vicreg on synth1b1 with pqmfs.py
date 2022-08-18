@@ -264,6 +264,7 @@ def app(cfg: DictConfig) -> None:
         cfg, device, voice, train_batch_num_dataloader, mel_spectrogram
     )
 
+    """
     audio_repr_to_params.train(
         cfg=cfg,
         device=device,
@@ -276,6 +277,7 @@ def app(cfg: DictConfig) -> None:
     )
     if cfg.log == "wand":
         wandb.finish()
+    """
 
 
 if __name__ == "__main__":
