@@ -256,7 +256,7 @@ def app(cfg: DictConfig) -> None:
             accelerator=cfg.accelerator,
             strategy=cfg.strategy,
             devices=cfg.devices,
-            #            callbacks = [vicreg_model_checkpoint],
+            callbacks = [vicreg_model_checkpoint],
             #            callbacks = [vicreg_model_checkpoint, ORTCallback()],
             # Doesn't work with our CUDA version :(
             # https://github.com/Lightning-AI/lightning-bolts
