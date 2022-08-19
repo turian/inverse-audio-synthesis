@@ -94,6 +94,7 @@ def train_audio_to_params(
 
         # TODO: Tune vicreg?
         with torch.no_grad():
+            vicreg.train()  # Disable dropout etc.
             # We take the backbone and don't do the avg pool, because we lose too many features
             # Instead we use all layers as the features :)
             predicted_audio_repr = vicreg.backbone2.features(audio)
