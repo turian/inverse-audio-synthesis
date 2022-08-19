@@ -2,12 +2,13 @@
 Inverse audio synthesis
 
 TODO:
-* Dropout in paramembed and downstream!
+* Dropout in downstream!
 * Make sure to use .train for training models and .eval for eval
 * More magic numbers in py files to config
 * Play with the dim, smaller than 256 might be fine.
 
 * Try sashimi backbone: https://github.com/HazyResearch/state-spaces/tree/main/sashimi
+* Try audio diffusion: https://github.com/archinetai/audio-diffusion-pytorch
 
 
 BUGS:
