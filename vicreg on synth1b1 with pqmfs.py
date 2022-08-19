@@ -169,7 +169,7 @@ def pretrain_vicreg(
                     # print(vicreg_checkpoint_filename)
                     torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
                     artifact = wandb.Artifact(
-                        f"vicreg_model-{voice_batch_num_str}", type="model"
+                        f"vicreg_model", type="model"
                     )
                     artifact.add_file(vicreg_checkpoint_filename)
                     wandrun.log_artifact(artifact)
