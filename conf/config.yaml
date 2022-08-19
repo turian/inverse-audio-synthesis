@@ -28,6 +28,9 @@ torchsynth:
 vicreg:
     do_pretrain: True
 
+    limit_train_batches: null
+    # limit_train_batches: 100
+
     # Set this as large as possible
     batch_size: 512
 

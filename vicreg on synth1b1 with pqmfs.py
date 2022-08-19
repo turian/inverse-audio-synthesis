@@ -114,8 +114,6 @@ class VicregAudioParams(pl.LightningModule):
         )
         # count_parameters(vicreg)
 
-    # https://github.com/Lightning-AI/lightning/issues/12943
-    def on_fit_start(self):
         # We need a new one of these every time we change the batch size,
         # which varies model to model. And might me we don't holdout correctly :(
         self.synthconfig = SynthConfig(
@@ -125,8 +123,10 @@ class VicregAudioParams(pl.LightningModule):
             buffer_size_seconds=self.cfg.torchsynth.buffer_size_seconds,
         )
         self.voice = Voice(synthconfig=self.synthconfig)
+        self.voice.to(self.device)
 
     def training_step(self, batch, batch_idx):
+        # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
         voice_batch_num = batch.detach().cpu().numpy()
         assert len(voice_batch_num) == 1
@@ -215,7 +215,7 @@ def app(cfg: DictConfig) -> None:
             every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches
         )
         # TODO: Remove limit_train_batches
-        vicreg_trainer = Trainer(logger=logger, limit_train_batches=100, max_epochs=1, precision=cfg.precision, accelerator=cfg.accelerator, devices=cfg.devices)
+        vicreg_trainer = Trainer(logger=logger, limit_train_batches=cfg.vicreg.limit_train_batches, max_epochs=1, precision=cfg.precision, accelerator=cfg.accelerator, devices=cfg.devices)
         vicreg_trainer.fit(
             vicreg,  # vicreg_scaler, vicreg_optimizer,
             train_dataloaders=train_batch_num_dataloader,
