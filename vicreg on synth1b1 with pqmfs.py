@@ -238,6 +238,7 @@ def app(cfg: DictConfig) -> None:
             #precision=cfg.precision,
             detect_anomaly=True, # useful logs about when and where the Nan or inf anomaly happens
             accelerator=cfg.accelerator,
+            strategy=cfg.strategy,
             devices=cfg.devices,
 #            callbacks = [vicreg_model_checkpoint],
         )
