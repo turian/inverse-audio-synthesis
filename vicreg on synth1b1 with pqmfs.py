@@ -12,11 +12,11 @@ import sys
 
 import hydra
 import numpy as np
+import pytorch_lightning as pl
 import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -25,15 +25,17 @@ import torchvision
 from omegaconf import DictConfig, OmegaConf
 from prettytable import PrettyTable
 from pynvml import *
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.lite import LightningLite
+from pytorch_lightning.loggers import WandbLogger
 from torch import Tensor
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -44,7 +46,7 @@ from pqmf import PQMF
 from utils import utcnowstr
 from vicreg import VICReg
 
-
+"""
 # https://stackoverflow.com/a/62508086/82733
 def count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
@@ -58,173 +60,91 @@ def count_parameters(model):
     print(table)
     print(f"Total Trainable Params: {total_params}")
     return total_params
+"""
 
 
-def pretrain_vicreg(
-    cfg: DictConfig, device, train_batch_num_dataloader, mel_spectrogram, wandrun
-) -> None:
-    # We need a new one of these every time we change the batch size,
-    # which varies model to model. And might me we don't holdout correctly :(
-    synthconfig = SynthConfig(
-        batch_size=cfg.vicreg.batch_size,
-        reproducible=cfg.torchsynth.reproducible,
-        sample_rate=cfg.torchsynth.rate,
-        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
-    )
-    voice = Voice(synthconfig=synthconfig)
-    voice = voice.to(device)
+class VicregAudioParams(pl.LightningModule):
+    def __init__(self, cfg: DictConfig, mel_spectrogram) -> None:
+        super().__init__()
 
-    vicreg_scaler = torch.cuda.amp.GradScaler()
+        self.cfg = cfg
 
-    # Use 3 channels for RGB image (not 4 which is PQMF default)
-    pqmf = PQMF(N=3)
-    pqmf = pqmf.to(device)
-
-    # New weights with accuracy 80.858%
-    # https://pytorch.org/vision/stable/models.html
-    # weights = ResNet50_Weights.IMAGENET1K_V2
-    # vision_model = resnet50(weights=weights)
-    # vision_model = vision_model.to(device)
-
-    # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-    # vision_model = mobilenet_v3_small(weights=weights)
-    # vision_model = vision_model.to(device)
-    # torchvision 0.12.0 :(
-    vision_model = mobilenet_v3_small(pretrained=cfg.vicreg.pretrained_vision_model)
-    vision_model = vision_model.to(device)
-
-    ## Initialize the inference transforms
-    # preprocess = weights.transforms()
-
-    # torchvision 0.12.0 :(
-    img_preprocess = torchvision.transforms.Normalize(
-        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-    )
-
-    paramembed = ParamEmbed(
-        nparams=cfg.nparams,
-        dim=cfg.dim,
-        hidden_norm=cfg.param_embed.hidden_norm,
-        dropout=cfg.param_embed.dropout,
-    )
-    paramembed = paramembed.to(device)
-
-    audio_repr = AudioEmbedding(
-        pqmf, vision_model, img_preprocess=img_preprocess, dim=cfg.dim
-    )
-
-    # vicreg = VICReg(cfg=cfg, backbone1 = paramembed, backbone2 = paramembed)
-    vicreg = VICReg(cfg=cfg, backbone1=paramembed, backbone2=audio_repr)
-    count_parameters(vicreg)
-    # vicreg = VICReg(cfg=cfg, backbone1 = audio_repr, backbone2 = audio_repr)
-    vicreg = vicreg.to(device)
-
-    # Probably could use a smarter optimizer?
-    # vicreg_optimizer = optim.Adam(vicreg.parameters(), lr=0.000001)
-    # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.0032, momentum=0.9)
-
-    if cfg.vicreg.use_lars:
-        ## LARS is fucked in our tests. Maybe because we're not distributing and haven't mucked with the FB code enough
-        vicreg_optimizer = LARS(
-            vicreg.parameters(),
-            lr=0,
-            weight_decay=cfg.vicreg.wd,
-            weight_decay_filter=exclude_bias_and_norm,
-            lars_adaptation_filter=exclude_bias_and_norm,
+        # We need a new one of these every time we change the batch size,
+        # which varies model to model. And might me we don't holdout correctly :(
+        self.synthconfig = SynthConfig(
+            batch_size=cfg.vicreg.batch_size,
+            reproducible=cfg.torchsynth.reproducible,
+            sample_rate=cfg.torchsynth.rate,
+            buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
         )
-    else:
+        self.voice = Voice(synthconfig=self.synthconfig)
+
+        # Use 3 channels for RGB image (not 4 which is PQMF default)
+        self.pqmf = PQMF(N=3)
+
+        # New weights with accuracy 80.858%
+        # https://pytorch.org/vision/stable/models.html
+        # weights = ResNet50_Weights.IMAGENET1K_V2
+        # vision_model = resnet50(weights=weights)
+        # vision_model = vision_model.to(device)
+
+        # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
+        # vision_model = mobilenet_v3_small(weights=weights)
+        # vision_model = vision_model.to(device)
+        # torchvision 0.12.0 :(
+        self.vision_model = mobilenet_v3_small(
+            pretrained=cfg.vicreg.pretrained_vision_model
+        )
+
+        ## Initialize the inference transforms
+        # preprocess = weights.transforms()
+
+        # torchvision 0.12.0 :(
+        self.img_preprocess = torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        )
+
+        self.paramembed = ParamEmbed(
+            nparams=cfg.nparams,
+            dim=cfg.dim,
+            hidden_norm=cfg.param_embed.hidden_norm,
+            dropout=cfg.param_embed.dropout,
+        )
+
+        self.audio_repr = AudioEmbedding(
+            self.pqmf,
+            self.vision_model,
+            img_preprocess=self.img_preprocess,
+            dim=cfg.dim,
+        )
+
+        # TODO: Swap order of these everywhere?
+        self.vicreg = VICReg(
+            cfg=cfg, backbone1=self.paramembed, backbone2=self.audio_repr
+        )
+        # count_parameters(vicreg)
+
+    def training_step(self, batch, batch_idx):
+        assert batch.numpy().shape == (1,)
+        voice_batch_num = batch.numpy()
+        assert len(voice_batch_num) == 1
+        voice_batch_num = voice_batch_num[0].item()
+
+        audio, params, is_train = self.voice(voice_batch_num)
+        audio = audio.unsqueeze(1)
+        #  audio2 = apply_augmentation(audio)
+
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(params, audio)
+        self.log("vicreg/loss", vicreg_loss)
+        self.log("vicreg/repr_loss", repr_loss)
+        self.log("vicreg/std_loss", std_loss)
+        self.log("vicreg/cov_loss", cov_loss)
+        return vicreg_loss
+
+    def configure_optimizers(self):
         # Everything is kinda fucked besides good old SGD
-        # For pretrained = True
-        vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.1)
-        # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.032)
-        ## For pretrained=False
-        # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.01)
-        # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.01)
-        # vicreg_optimizer = optim.SGD(vicreg.parameters(), lr=0.000001)
-
-    if cfg.vicreg.continue_from:
-        if device == "cpu":
-            checkpoint = torch.load(
-                cfg.vicreg.continue_from, map_location=torch.device(device)
-            )
-        else:
-            checkpoint = torch.load(cfg.vicreg.continue_from)
-        vicreg.load_state_dict(checkpoint)
-        vicrec = vicreg.to(device)
-
-    # Only one node for now
-    per_device_batch_size = cfg.vicreg.batch_size
-    cfg.num_workers = 1
-
-    if cfg.vicreg.do_pretrain:
-        vicreg.train()
-        # One epoch training
-        for pretrain_batch_num, voice_batch_num in tqdm(
-            enumerate(train_batch_num_dataloader)
-        ):
-            wandb_step = pretrain_batch_num * cfg.vicreg.batch_size
-            assert voice_batch_num.numpy().shape == (1,)
-            voice_batch_num = voice_batch_num.numpy()
-            assert len(voice_batch_num) == 1
-            voice_batch_num = voice_batch_num[0].item()
-
-            if cfg.log == "wand":
-                if pretrain_batch_num % cfg.vicreg.checkpoint_every_nbatches == 0:
-                    # Time to checkpoint pretraining train
-                    voice_batch_num_str = f"{'%010d' % pretrain_batch_num}"
-                    vicreg_checkpoint_filename = (
-                        f"/tmp/vicreg_model_{utcnowstr}-{pretrain_batch_num}.pth"
-                    )
-                    # print(vicreg_checkpoint_filename)
-                    torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
-                    artifact = wandb.Artifact(f"vicreg_model", type="model")
-                    artifact.add_file(vicreg_checkpoint_filename)
-                    wandrun.log_artifact(artifact)
-                    # run.join()
-
-            audio, params, is_train = voice(voice_batch_num)
-            audio = audio.unsqueeze(1)
-            #  audio2 = apply_augmentation(audio)
-
-            if cfg.vicreg.use_lars:
-                lr = adjust_learning_rate(cfg, vicreg_optimizer, loader, step)
-                if cfg.log == "wand":
-                    wandb.log({"lars_lr": lr}, step=wandb_step)
-                vicreg_optimizer.zero_grad()
-                with torch.cuda.amp.autocast():
-                    vicreg_loss = vicreg.forward(params, audio)
-            else:
-                vicreg_optimizer.zero_grad()
-                vicreg_loss = vicreg.forward(params, audio)
-
-            #  loss = vicreg(audio2, audio)
-            vicreg_loss, repr_loss, std_loss, cov_loss = vicreg(params, audio)
-            #  loss = vicreg(params, params)
-            vicreg_lossval = vicreg_loss.detach().cpu().numpy()
-            if math.isnan(vicreg_lossval):
-                print("NAN")
-                sys.stdout.flush()
-                continue
-            #            break
-            if cfg.log == "wand":
-                wandb.log(
-                    {
-                        "vicreg/loss": vicreg_lossval,
-                        "vicreg/repr_loss": repr_loss.detach().cpu().numpy(),
-                        "vicreg/std_loss": std_loss.detach().cpu().numpy(),
-                        "vicreg/cov_loss": cov_loss.detach().cpu().numpy(),
-                    },
-                    step=wandb_step,
-                )
-
-            # loss.backward()
-            # optimizer.step()
-
-            vicreg_scaler.scale(vicreg_loss).backward()
-            vicreg_scaler.step(vicreg_optimizer)
-            vicreg_scaler.update()
-
-    return vicreg
+        # TODO: Try LARS
+        return optim.SGD(self.parameters(), lr=self.cfg.vicreg.lr)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
@@ -283,8 +203,7 @@ def app(cfg: DictConfig) -> None:
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
     if cfg.log == "wand":
-
-        wandrun = wandb.init(
+        logger = WandbLogger(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
             #      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
@@ -293,11 +212,20 @@ def app(cfg: DictConfig) -> None:
         )
 
     else:
-        wandrun = None
+        logger = None
 
-    vicreg = pretrain_vicreg(
-        cfg, device, train_batch_num_dataloader, mel_spectrogram, wandrun
-    )
+    vicreg = VicregAudioParams(cfg, mel_spectrogram)
+
+    if cfg.vicreg.do_pretrain:
+        vicreg_model_checkpoint = ModelCheckpoint(
+            every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches
+        )
+        # TODO: Remove limit_train_batches
+        vicreg_trainer = Trainer(logger=logger, limit_train_batches=100, max_epochs=1, precision=cfg.precision, accelerator=cfg.accelerator, devices=cfg.devices)
+        vicreg_trainer.fit(
+            vicreg,  # vicreg_scaler, vicreg_optimizer,
+            train_dataloaders=train_batch_num_dataloader,
+        )
 
     audio_repr_to_params.train(
         cfg=cfg,

@@ -1,4 +1,8 @@
-# Use the largest batchsize possible
+precision: 16
+#accelerator: "gpu"
+#devices: 2
+accelerator: "cpu"
+devices: 1
 
 num_batches: 50000000
 
@@ -24,9 +28,6 @@ torchsynth:
 vicreg:
     do_pretrain: True
 
-#    continue_from: "vicreg.pth"
-    continue_from: null
-
     # Set this as large as possible
     batch_size: 512
 
@@ -47,6 +48,8 @@ vicreg:
     weight_decy: 1e-6
 
     pretrained_vision_model: True
+
+    lr: 0.1
 
 param_embed:
     # Used in heareval

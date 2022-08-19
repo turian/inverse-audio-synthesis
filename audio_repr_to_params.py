@@ -4,18 +4,16 @@ import sys
 import soundfile
 import torch
 import torch.nn as nn
-
 # import torch.distributed as dist
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
 from torchsynth.config import SynthConfig
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
