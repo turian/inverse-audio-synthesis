@@ -17,6 +17,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -30,12 +31,13 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.loggers import WandbLogger
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -142,7 +144,6 @@ class VicregAudioParams(pl.LightningModule):
         self.log("vicreg/std_loss", std_loss)
         self.log("vicreg/cov_loss", cov_loss)
 
-
         sch = self.lr_schedulers()
 
         # step every N batches
@@ -202,7 +203,7 @@ def app(cfg: DictConfig) -> None:
         mel_scale=cfg.mel.mel_scale,
     )
 
-    #vicreg_scaler = torch.cuda.amp.GradScaler()
+    # vicreg_scaler = torch.cuda.amp.GradScaler()
 
     vicreg = VicregAudioParams(cfg, mel_spectrogram)
 
@@ -214,7 +215,7 @@ def app(cfg: DictConfig) -> None:
             #      name=f"experiment_{run}",
             config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
             # Log model checkpoints as they get created during training
-            log_model="all"
+            log_model="all",
         )
         logger.watch(vicreg)
 
@@ -226,9 +227,22 @@ def app(cfg: DictConfig) -> None:
             every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
             dirpath="chkpts/",
             filename="vicreg-{epoch:02d}-{step:04d}",
+            monitor=None,
+            save_last=True,
         )
         # TODO: Remove limit_train_batches
-        vicreg_trainer = Trainer(logger=logger, limit_train_batches=cfg.vicreg.limit_train_batches, max_epochs=1, precision=cfg.precision, accelerator=cfg.accelerator, devices=cfg.devices)
+        vicreg_trainer = Trainer(
+            logger=logger,
+            limit_train_batches=cfg.vicreg.limit_train_batches,
+            max_epochs=1,
+            #precision=cfg.precision,
+            detect_anomaly=True, # useful logs about when and where the Nan or inf anomaly happens
+            accelerator=cfg.accelerator,
+            devices=cfg.devices,
+#            callbacks = [vicreg_model_checkpoint],
+        )
+        from copy import deepcopy
+#        deepcopy(vicreg_trainer.callback_metrics)
         vicreg_trainer.fit(
             vicreg,  # vicreg_scaler, vicreg_optimizer,
             train_dataloaders=train_batch_num_dataloader,
@@ -236,7 +250,7 @@ def app(cfg: DictConfig) -> None:
 
     audio_repr_to_params.train(
         cfg=cfg,
-#        device=device,
+        #        device=device,
         vicreg=vicreg,
         train_batch_num_dataloader=train_batch_num_dataloader,
         val_batch_num_dataloader=val_batch_num_dataloader,
