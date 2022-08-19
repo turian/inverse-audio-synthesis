@@ -1,8 +1,8 @@
 precision: 16
-#accelerator: "gpu"
-#devices: 2
-accelerator: "cpu"
+accelerator: "gpu"
 devices: 1
+#accelerator: "cpu"
+#devices: 1
 
 num_batches: 50000000
 

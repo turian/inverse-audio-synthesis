@@ -69,16 +69,6 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
-        # We need a new one of these every time we change the batch size,
-        # which varies model to model. And might me we don't holdout correctly :(
-        self.synthconfig = SynthConfig(
-            batch_size=cfg.vicreg.batch_size,
-            reproducible=cfg.torchsynth.reproducible,
-            sample_rate=cfg.torchsynth.rate,
-            buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
-        )
-        self.voice = Voice(synthconfig=self.synthconfig)
-
         # Use 3 channels for RGB image (not 4 which is PQMF default)
         self.pqmf = PQMF(N=3)
 
@@ -124,9 +114,21 @@ class VicregAudioParams(pl.LightningModule):
         )
         # count_parameters(vicreg)
 
+    # https://github.com/Lightning-AI/lightning/issues/12943
+    def on_fit_start(self):
+        # We need a new one of these every time we change the batch size,
+        # which varies model to model. And might me we don't holdout correctly :(
+        self.synthconfig = SynthConfig(
+            batch_size=self.cfg.vicreg.batch_size,
+            reproducible=self.cfg.torchsynth.reproducible,
+            sample_rate=self.cfg.torchsynth.rate,
+            buffer_size_seconds=self.cfg.torchsynth.buffer_size_seconds,
+        )
+        self.voice = Voice(synthconfig=self.synthconfig)
+
     def training_step(self, batch, batch_idx):
-        assert batch.numpy().shape == (1,)
-        voice_batch_num = batch.numpy()
+        assert batch.detach().cpu().numpy().shape == (1,)
+        voice_batch_num = batch.detach().cpu().numpy()
         assert len(voice_batch_num) == 1
         voice_batch_num = voice_batch_num[0].item()
 
@@ -191,7 +193,6 @@ def app(cfg: DictConfig) -> None:
         n_mels=cfg.mel.n_mels,
         mel_scale=cfg.mel.mel_scale,
     )
-    mel_spectrogram = mel_spectrogram.to(device)
 
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
@@ -222,7 +223,7 @@ def app(cfg: DictConfig) -> None:
 
     audio_repr_to_params.train(
         cfg=cfg,
-        device=device,
+#        device=device,
         vicreg=vicreg,
         train_batch_num_dataloader=train_batch_num_dataloader,
         val_batch_num_dataloader=val_batch_num_dataloader,
