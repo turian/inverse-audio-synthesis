@@ -16,6 +16,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -26,12 +27,13 @@ from prettytable import PrettyTable
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -99,7 +101,12 @@ def pretrain_vicreg(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
-    paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim, hidden_norm=cfg.param_embed.hidden_norm, dropout=cfg.param_embed.dropout)
+    paramembed = ParamEmbed(
+        nparams=cfg.nparams,
+        dim=cfg.dim,
+        hidden_norm=cfg.param_embed.hidden_norm,
+        dropout=cfg.param_embed.dropout,
+    )
     paramembed = paramembed.to(device)
 
     audio_repr = AudioEmbedding(
@@ -155,6 +162,7 @@ def pretrain_vicreg(
         for pretrain_batch_num, voice_batch_num in tqdm(
             enumerate(train_batch_num_dataloader)
         ):
+            wandb_step = pretrain_batch_num * cfg.vicreg.batch_size
             assert voice_batch_num.numpy().shape == (1,)
             voice_batch_num = voice_batch_num.numpy()
             assert len(voice_batch_num) == 1
@@ -169,9 +177,7 @@ def pretrain_vicreg(
                     )
                     # print(vicreg_checkpoint_filename)
                     torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
-                    artifact = wandb.Artifact(
-                        f"vicreg_model", type="model"
-                    )
+                    artifact = wandb.Artifact(f"vicreg_model", type="model")
                     artifact.add_file(vicreg_checkpoint_filename)
                     wandrun.log_artifact(artifact)
                     # run.join()
@@ -183,7 +189,7 @@ def pretrain_vicreg(
             if cfg.vicreg.use_lars:
                 lr = adjust_learning_rate(cfg, vicreg_optimizer, loader, step)
                 if cfg.log == "wand":
-                    wandb.log({"lars_lr": lr})
+                    wandb.log({"lars_lr": lr}, step=wandb_step)
                 vicreg_optimizer.zero_grad()
                 with torch.cuda.amp.autocast():
                     vicreg_loss = vicreg.forward(params, audio)
@@ -192,7 +198,7 @@ def pretrain_vicreg(
                 vicreg_loss = vicreg.forward(params, audio)
 
             #  loss = vicreg(audio2, audio)
-            vicreg_loss = vicreg(params, audio)
+            vicreg_loss, repr_loss, std_loss, cov_loss = vicreg(params, audio)
             #  loss = vicreg(params, params)
             vicreg_lossval = vicreg_loss.detach().cpu().numpy()
             if math.isnan(vicreg_lossval):
@@ -201,7 +207,15 @@ def pretrain_vicreg(
                 continue
             #            break
             if cfg.log == "wand":
-                wandb.log({"vicreg_loss": vicreg_lossval})
+                wandb.log(
+                    {
+                        "vicreg/loss": vicreg_lossval,
+                        "vicreg/repr_loss": repr_loss.detach().cpu().numpy(),
+                        "vicreg/std_loss": std_loss.detach().cpu().numpy(),
+                        "vicreg/cov_loss": cov_loss.detach().cpu().numpy(),
+                    },
+                    step=wandb_step,
+                )
 
             # loss.backward()
             # optimizer.step()

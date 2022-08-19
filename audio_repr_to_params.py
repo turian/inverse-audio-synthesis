@@ -4,16 +4,18 @@ import sys
 import soundfile
 import torch
 import torch.nn as nn
+
 # import torch.distributed as dist
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
 from torchsynth.config import SynthConfig
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -80,6 +82,9 @@ def train_audio_to_params(
     for audio_repr_to_params_train_batch_num, voice_batch_num in tqdm(
         enumerate(train_batch_num_dataloader)
     ):
+        wandb_step = (
+            audio_repr_to_params_train_batch_num * cfg.audio_repr_to_params.batch_size
+        )
         assert voice_batch_num.numpy().shape == (1,)
         voice_batch_num = voice_batch_num.numpy()
         assert len(voice_batch_num) == 1
@@ -139,7 +144,8 @@ def train_audio_to_params(
                     "audio_repr_to_params/mel_l1_error": mel_l1_error.detach()
                     .cpu()
                     .numpy()
-                }
+                },
+                step=wandb_step,
             )
 
         print(mel_l1_error)
