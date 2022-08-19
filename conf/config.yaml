@@ -40,8 +40,8 @@ vicreg:
     # For precision 16
     #    batch_size: 2048
 
-    checkpoint_every_nbatches: 10
-#    checkpoint_every_nbatches: 10000
+    checkpoint_every_nbatches: 10000
+    #checkpoint_every_nbatches: 10
 #    checkpoint_every_nbatches: 1000
 
     # Otherwise this will be the biggest module in vicreg
@@ -60,7 +60,8 @@ vicreg:
 #        lr: 0.1
       name: "lars"
       args:
-        base_lr: 0.2
+#        base_lr: 0.2
+        base_lr: 0.64
         weight_decay: 1e-6
 
 param_embed:
