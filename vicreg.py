@@ -45,8 +45,8 @@ class VICReg(nn.Module):
         std_y = torch.sqrt(y.var(dim=0) + 0.0001)
         std_loss = torch.mean(F.relu(1 - std_x)) / 2 + torch.mean(F.relu(1 - std_y)) / 2
 
-        cov_x = (x.T @ x) / (self.cfg.batch_size - 1)
-        cov_y = (y.T @ y) / (self.cfg.batch_size - 1)
+        cov_x = (x.T @ x) / (self.cfg.vicreg.batch_size - 1)
+        cov_y = (y.T @ y) / (self.cfg.vicreg.batch_size - 1)
         cov_loss = off_diagonal(cov_x).pow_(2).sum().div(
             self.num_features
         ) + off_diagonal(cov_y).pow_(2).sum().div(self.num_features)
@@ -166,7 +166,7 @@ def exclude_bias_and_norm(p):
 def adjust_learning_rate(cfg, optimizer, loader, step):
     max_steps = cfg.vicreg.epochs * len(loader)
     warmup_steps = 10 * len(loader)
-    base_lr = cfg.vicrec.base_lr * cfg.batch_size / 256
+    base_lr = cfg.vicrec.base_lr * cfg.vicreg.batch_size / 256
     if step < warmup_steps:
         lr = base_lr * step / warmup_steps
     else:

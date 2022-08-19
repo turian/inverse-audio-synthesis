@@ -7,3 +7,6 @@ soundfile
 wandb
 git+https://github.com/torchsynth/torchsynth
 omegaconf
+
+black
+isort

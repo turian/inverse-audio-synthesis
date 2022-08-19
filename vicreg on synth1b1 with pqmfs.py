@@ -16,6 +16,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -25,12 +26,13 @@ from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -43,9 +45,19 @@ from vicreg import VICReg
 
 
 def pretrain_vicreg(
-    cfg: DictConfig, device, voice, train_batch_num_dataloader, mel_spectrogram,
-    wandrun
+    cfg: DictConfig, device, train_batch_num_dataloader, mel_spectrogram, wandrun
 ) -> None:
+    # We need a new one of these every time we change the batch size,
+    # which varies model to model. And might me we don't holdout correctly :(
+    synthconfig = SynthConfig(
+        batch_size=cfg.vicreg.batch_size,
+        reproducible=cfg.torchsynth.reproducible,
+        sample_rate=cfg.torchsynth.rate,
+        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
+    )
+    voice = Voice(synthconfig=synthconfig)
+    voice = voice.to(device)
+
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
     # Use 3 channels for RGB image (not 4 which is PQMF default)
@@ -117,67 +129,68 @@ def pretrain_vicreg(
         vicrec = vicreg.to(device)
 
     # Only one node for now
-    per_device_batch_size = cfg.batch_size
+    per_device_batch_size = cfg.vicreg.batch_size
     cfg.num_workers = 1
 
-    # One epoch training
-    for pretrain_batch_num, voice_batch_num in tqdm(
-        enumerate(train_batch_num_dataloader)
-    ):
-        assert voice_batch_num.numpy().shape == (1,)
-        voice_batch_num = voice_batch_num.numpy()
-        assert len(voice_batch_num) == 1
-        voice_batch_num = voice_batch_num[0].item()
+    if cfg.vicreg.do_pretrain:
+        # One epoch training
+        for pretrain_batch_num, voice_batch_num in tqdm(
+            enumerate(train_batch_num_dataloader)
+        ):
+            assert voice_batch_num.numpy().shape == (1,)
+            voice_batch_num = voice_batch_num.numpy()
+            assert len(voice_batch_num) == 1
+            voice_batch_num = voice_batch_num[0].item()
 
-        if cfg.log == "wand":
-            if pretrain_batch_num % cfg.vicreg.checkpoint_every_nbatches == 0:
-                # Time to checkpoint pretraining train
-                voice_batch_num_str = f"{'%010d' % pretrain_batch_num}"
-                vicreg_checkpoint_filename = (
-                    f"/tmp/vicreg_model_{utcnowstr}-{pretrain_batch_num}.pth"
-                )
-                # print(vicreg_checkpoint_filename)
-                torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
-                artifact = wandb.Artifact(
-                    f"vicreg_model-{voice_batch_num_str}", type="model"
-                )
-                artifact.add_file(vicreg_checkpoint_filename)
-                wandrun.log_artifact(artifact)
-                # run.join()
-
-        audio, params, is_train = voice(voice_batch_num)
-        audio = audio.unsqueeze(1)
-        #  audio2 = apply_augmentation(audio)
-
-        if cfg.vicreg.use_lars:
-            lr = adjust_learning_rate(cfg, vicreg_optimizer, loader, step)
             if cfg.log == "wand":
-                wandb.log({"lars_lr": lr})
-            vicreg_optimizer.zero_grad()
-            with torch.cuda.amp.autocast():
+                if pretrain_batch_num % cfg.vicreg.checkpoint_every_nbatches == 0:
+                    # Time to checkpoint pretraining train
+                    voice_batch_num_str = f"{'%010d' % pretrain_batch_num}"
+                    vicreg_checkpoint_filename = (
+                        f"/tmp/vicreg_model_{utcnowstr}-{pretrain_batch_num}.pth"
+                    )
+                    # print(vicreg_checkpoint_filename)
+                    torch.save(vicreg.state_dict(), vicreg_checkpoint_filename)
+                    artifact = wandb.Artifact(
+                        f"vicreg_model-{voice_batch_num_str}", type="model"
+                    )
+                    artifact.add_file(vicreg_checkpoint_filename)
+                    wandrun.log_artifact(artifact)
+                    # run.join()
+
+            audio, params, is_train = voice(voice_batch_num)
+            audio = audio.unsqueeze(1)
+            #  audio2 = apply_augmentation(audio)
+
+            if cfg.vicreg.use_lars:
+                lr = adjust_learning_rate(cfg, vicreg_optimizer, loader, step)
+                if cfg.log == "wand":
+                    wandb.log({"lars_lr": lr})
+                vicreg_optimizer.zero_grad()
+                with torch.cuda.amp.autocast():
+                    vicreg_loss = vicreg.forward(params, audio)
+            else:
+                vicreg_optimizer.zero_grad()
                 vicreg_loss = vicreg.forward(params, audio)
-        else:
-            vicreg_optimizer.zero_grad()
-            vicreg_loss = vicreg.forward(params, audio)
 
-        #  loss = vicreg(audio2, audio)
-        vicreg_loss = vicreg(params, audio)
-        #  loss = vicreg(params, params)
-        vicreg_lossval = vicreg_loss.detach().cpu().numpy()
-        if math.isnan(vicreg_lossval):
-            print("NAN")
-            sys.stdout.flush()
-            continue
-        #            break
-        if cfg.log == "wand":
-            wandb.log({"vicreg_loss": vicreg_lossval})
+            #  loss = vicreg(audio2, audio)
+            vicreg_loss = vicreg(params, audio)
+            #  loss = vicreg(params, params)
+            vicreg_lossval = vicreg_loss.detach().cpu().numpy()
+            if math.isnan(vicreg_lossval):
+                print("NAN")
+                sys.stdout.flush()
+                continue
+            #            break
+            if cfg.log == "wand":
+                wandb.log({"vicreg_loss": vicreg_lossval})
 
-        # loss.backward()
-        # optimizer.step()
+            # loss.backward()
+            # optimizer.step()
 
-        vicreg_scaler.scale(vicreg_loss).backward()
-        vicreg_scaler.step(vicreg_optimizer)
-        vicreg_scaler.update()
+            vicreg_scaler.scale(vicreg_loss).backward()
+            vicreg_scaler.step(vicreg_optimizer)
+            vicreg_scaler.update()
 
     return vicreg
 
@@ -188,17 +201,6 @@ def app(cfg: DictConfig) -> None:
 
     wandb.login()
 
-    # We'll generate cfg.batch_size sounds per batch, 4 seconds each
-    # TODO: On larger GPUs, use larger batch size
-    synthconfig = SynthConfig(
-        batch_size=cfg.batch_size,
-        reproducible=cfg.torchsynth.reproducible,
-        sample_rate=cfg.torchsynth.rate,
-        buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
-    )
-
-    voice = Voice(synthconfig=synthconfig)
-
     # Run on the GPU if it's available
     # TODO: multigpu
     if torch.cuda.is_available():
@@ -206,8 +208,10 @@ def app(cfg: DictConfig) -> None:
     else:
         device = "cpu"
 
-    voice = voice.to(device)
-
+    # BUG: We use a batch_size of 128 for vicreg pretraining and a batch_size of
+    # 4 for downstream inverse synthesis. However, we are not careful about
+    # our train/test splits so test for downstream might have been used as
+    # training for vicreg. I don't think this is a big deal tho.
     batch_nums = torch.tensor(list(range(cfg.num_batches)))
     # batch_num_dataset = torch.utils.data.DataSet(batch_nums)
     # batch_num_dataset = batch_num_dataset.to(device)
@@ -267,7 +271,6 @@ def app(cfg: DictConfig) -> None:
         cfg, device, voice, train_batch_num_dataloader, mel_spectrogram, wandrun
     )
 
-    """
     audio_repr_to_params.train(
         cfg=cfg,
         device=device,
@@ -278,7 +281,6 @@ def app(cfg: DictConfig) -> None:
         test_batch_num_dataloader=test_batch_num_dataloader,
         mel_spectrogram=mel_spectrogram,
     )
-    """
 
     if cfg.log == "wand":
         wandb.finish()

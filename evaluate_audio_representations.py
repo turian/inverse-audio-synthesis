@@ -20,7 +20,7 @@
 
 TEST_BATCH_SIZE = 16
 PREDICT_BATCH_SIZE = 1024
-#PREDICT_BATCH_SIZE = 128
+# PREDICT_BATCH_SIZE = 128
 
 
 import os
@@ -37,7 +37,8 @@ from hydra import initialize, initialize_config_module, initialize_config_dir, c
 from omegaconf import OmegaConf
 
 from omegaconf import OmegaConf
-cfg = OmegaConf.load('conf/config.yaml')
+
+cfg = OmegaConf.load("conf/config.yaml")
 
 # +
 
@@ -51,6 +52,7 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -60,12 +62,13 @@ from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
+
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import \
-    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -78,7 +81,7 @@ from vicreg import VICReg
 
 # +
 # #!pip3 install auraloss
-#import auraloss
+# import auraloss
 
 # +
 
@@ -88,7 +91,7 @@ if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
-    
+
 # We'll generate cfg.batch_size sounds per batch, 4 seconds each
 # TODO: On larger GPUs, use larger batch size
 synthconfig_test = SynthConfig(
@@ -127,7 +130,7 @@ mel_spectrogram = mel_spectrogram.to(device)
 
 # -
 
-checkpoint = torch.load("vicreg.pth", map_location=torch.device('cpu'))
+checkpoint = torch.load("vicreg.pth", map_location=torch.device("cpu"))
 
 # +
 
@@ -159,12 +162,13 @@ img_preprocess = torchvision.transforms.Normalize(
 paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim)
 paramembed = paramembed.to(device)
 
-audio_repr = AudioEmbedding(pqmf, vision_model, img_preprocess=img_preprocess).to(device)
+audio_repr = AudioEmbedding(pqmf, vision_model, img_preprocess=img_preprocess).to(
+    device
+)
 vicreg = VICReg(cfg=cfg, backbone1=paramembed, backbone2=audio_repr).to(device)
 # -
 
 vicreg.load_state_dict(checkpoint)
-
 
 
 voice_batch_num = 0
@@ -175,19 +179,19 @@ test_audio = test_audio.unsqueeze(1)
 
 with torch.no_grad():
     vicreg.eval()
-#    test_audio_repr = vicreg.backbone2(test_audio)
+    #    test_audio_repr = vicreg.backbone2(test_audio)
     test_audio_repr = vicreg.projector(vicreg.backbone2(test_audio))
 # -
 
 import matplotlib.pyplot
 
 # +
-#mrstft = auraloss.freq.MultiResolutionSTFTLoss()
+# mrstft = auraloss.freq.MultiResolutionSTFTLoss()
 
 import IPython.display
 
 # +
-#TODO: Remove dropout from downstream
+# TODO: Remove dropout from downstream
 # -
 
 # !pip3 install --upgrade soundfile
@@ -196,6 +200,7 @@ import IPython.display
 # !rm vicreg-match*wav
 min_dist = [999] * TEST_BATCH_SIZE
 import copy
+
 min_dists = [[] for i in range(TEST_BATCH_SIZE)]
 print(min_dists)
 import matplotlib.pyplot as plt
@@ -206,38 +211,42 @@ for batch in tqdm(list(range(1, 1000000))):
 
     with torch.no_grad():
         vicreg.eval()
-#        new_audio_repr = vicreg.backbone2(new_audio)
+        #        new_audio_repr = vicreg.backbone2(new_audio)
         new_audio_repr = vicreg.projector(vicreg.backbone2(new_audio))
 
         dists = torch.cdist(test_audio_repr, new_audio_repr)
 
     for i in range(TEST_BATCH_SIZE):
-        #print("min_dist", min_dist)
+        # print("min_dist", min_dist)
         nearest_neighbor = torch.argsort(dists[i])[0].cpu().numpy()
         nearest_dist = dists[i, nearest_neighbor].cpu()
         if nearest_dist < min_dist[i]:
             silence = np.zeros((1, int(44100 * 0.5)))
-#            print("sample", i, nearest_dist.numpy(), #mrstft(test_audio[i], new_audio[nearest_neighbor]).numpy(),
-#                  nearest_neighbor, 'batch', batch)
+            #            print("sample", i, nearest_dist.numpy(), #mrstft(test_audio[i], new_audio[nearest_neighbor]).numpy(),
+            #                  nearest_neighbor, 'batch', batch)
             min_dist[i] = nearest_dist.cpu().numpy().item()
-            stacked_audio = np.hstack([test_audio[i].cpu(), silence, new_audio[nearest_neighbor].cpu()])
-            outfile = "vicreg-match-dist%05.2f-sample%d-batch%06d.wav" % (min_dist[i], i, batch)
+            stacked_audio = np.hstack(
+                [test_audio[i].cpu(), silence, new_audio[nearest_neighbor].cpu()]
+            )
+            outfile = "vicreg-match-dist%05.2f-sample%d-batch%06d.wav" % (
+                min_dist[i],
+                i,
+                batch,
+            )
             soundfile.write(outfile, stacked_audio.T, 44100)
             min_dists[i].append((batch, min_dist[i]))
-#            print("new min_dists", min_dists)
+            #            print("new min_dists", min_dists)
 
             if batch > 100:
                 for line in min_dists:
                     batchs = [batch for batch, val in line]
                     vals = [val for batch, val in line]
-                    assert tuple(vals) == tuple(sorted(tuple(vals), reverse=True)), "%s vs %s" % (tuple(vals), tuple(sorted(tuple(vals))))
+                    assert tuple(vals) == tuple(
+                        sorted(tuple(vals), reverse=True)
+                    ), "%s vs %s" % (tuple(vals), tuple(sorted(tuple(vals))))
                     plt.plot(batchs, vals)
                 plt.title("%d" % batch)
-                plt.savefig('vicreg-match-curve-%06d.png' % batch)
+                plt.savefig("vicreg-match-curve-%06d.png" % batch)
                 plt.show()
         #            display(IPython.display.Audio(stacked_audio, rate=44100))
 # -
-
-
-
-
