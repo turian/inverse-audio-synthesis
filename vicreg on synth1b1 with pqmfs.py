@@ -243,7 +243,7 @@ def app(cfg: DictConfig) -> None:
             devices=cfg.devices,
 #            callbacks = [vicreg_model_checkpoint],
         )
-        from copy import deepcopy
+#        from copy import deepcopy
 #        deepcopy(vicreg_trainer.callback_metrics)
         vicreg_trainer.fit(
             vicreg,  # vicreg_scaler, vicreg_optimizer,
