@@ -1,4 +1,6 @@
-precision: 16
+#precision: 16
+# Try this to avoid NaN too late through
+precision: bf16
 accelerator: "gpu"
 devices: 1
 #accelerator: "cpu"
@@ -39,7 +41,8 @@ vicreg:
     #use_lars: True
 
 #    checkpoint_every_nbatches: 10
-    checkpoint_every_nbatches: 10000
+#    checkpoint_every_nbatches: 10000
+    checkpoint_every_nbatches: 1000
 
     # Otherwise this will be the biggest module in vicreg
     mlp: "256-256-%d"

@@ -141,6 +141,14 @@ class VicregAudioParams(pl.LightningModule):
         self.log("vicreg/repr_loss", repr_loss)
         self.log("vicreg/std_loss", std_loss)
         self.log("vicreg/cov_loss", cov_loss)
+
+
+        sch = self.lr_schedulers()
+
+        # step every N batches
+        if (batch_idx + 1) % 10000 == 0:
+            sch.step()
+
         return vicreg_loss
 
     def configure_optimizers(self):
@@ -215,7 +223,9 @@ def app(cfg: DictConfig) -> None:
 
     if cfg.vicreg.do_pretrain:
         vicreg_model_checkpoint = ModelCheckpoint(
-            every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches
+            every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
+            dirpath="chkpts/",
+            filename="vicreg-{epoch:02d}-{step:04d}",
         )
         # TODO: Remove limit_train_batches
         vicreg_trainer = Trainer(logger=logger, limit_train_batches=cfg.vicreg.limit_train_batches, max_epochs=1, precision=cfg.precision, accelerator=cfg.accelerator, devices=cfg.devices)
