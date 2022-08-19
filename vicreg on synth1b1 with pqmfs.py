@@ -99,7 +99,7 @@ def pretrain_vicreg(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
-    paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim)
+    paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim, hidden_norm=cfg.param_embed.hidden_norm, dropout=cfg.param_embed.dropout)
     paramembed = paramembed.to(device)
 
     audio_repr = AudioEmbedding(
@@ -150,6 +150,7 @@ def pretrain_vicreg(
     cfg.num_workers = 1
 
     if cfg.vicreg.do_pretrain:
+        vicreg.train()
         # One epoch training
         for pretrain_batch_num, voice_batch_num in tqdm(
             enumerate(train_batch_num_dataloader)

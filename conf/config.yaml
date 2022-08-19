@@ -48,6 +48,14 @@ vicreg:
 
     pretrained_vision_model: True
 
+param_embed:
+    # Used in heareval
+    hidden_norm: nn.BatchNorm1d
+    #hidden_norm: nn.Identity
+    # Used in heareval
+    dropout: 0.1
+
+
 audio_repr_to_params:
     # Smaller for downstream???? IDK WHY
     batch_size: 4
