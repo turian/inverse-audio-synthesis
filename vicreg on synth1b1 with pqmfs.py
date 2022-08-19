@@ -153,13 +153,6 @@ def app(cfg: DictConfig) -> None:
 
     wandb.login()
 
-    # Run on the GPU if it's available
-    # TODO: multigpu
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
-
     # BUG: We use a batch_size of 128 for vicreg pretraining and a batch_size of
     # 4 for downstream inverse synthesis. However, we are not careful about
     # our train/test splits so test for downstream might have been used as
