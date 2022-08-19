@@ -40,10 +40,6 @@ vicreg:
     # For precision 16
     #    batch_size: 2048
 
-    # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
-    use_lars: False
-    #use_lars: True
-
     checkpoint_every_nbatches: 10
 #    checkpoint_every_nbatches: 10000
 #    checkpoint_every_nbatches: 1000
@@ -55,11 +51,17 @@ vicreg:
     sim_coeff: 25.0
     std_coeff: 25.0
     cov_coeff: 1.0
-    weight_decy: 1e-6
 
     pretrained_vision_model: True
 
-    lr: 0.1
+    optim:
+#      name: "sgd"
+#      args:
+#        lr: 0.1
+      name: "lars"
+      args:
+        base_lr: 0.2
+        weight_decay: 1e-6
 
 param_embed:
     # Used in heareval

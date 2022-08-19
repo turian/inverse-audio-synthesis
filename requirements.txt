@@ -13,3 +13,5 @@ black
 isort
 
 prettytable
+#lightning-bolts
+lightning-flash

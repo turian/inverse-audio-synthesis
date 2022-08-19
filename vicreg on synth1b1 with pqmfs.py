@@ -10,6 +10,7 @@ import datetime
 import math
 import sys
 
+import flash.core
 import hydra
 import numpy as np
 import pytorch_lightning as pl
@@ -154,9 +155,23 @@ class VicregAudioParams(pl.LightningModule):
         return vicreg_loss
 
     def configure_optimizers(self):
-        # Everything is kinda fucked besides good old SGD
-        # TODO: Try LARS
-        return optim.SGD(self.parameters(), lr=self.cfg.vicreg.lr)
+        if self.cfg.vicreg.optim.name == "sgd":
+            return optim.SGD(self.parameters(), **self.cfg.vicreg.optim.args)
+        elif self.cfg.vicreg.optim.name == "lars":
+            # TODO: Add cosine scheduler?
+            # https://arxiv.org/pdf/2105.04906.pdf
+            # Section 4.2: "The learning rate follows a cosine decay
+            # schedule Loshchilov & Hutter (2017), starting from 0 with
+            # 10 warmup epochs and with final value of 0.002."
+            return flash.core.optimizers.LARS(
+                self.parameters(),
+                weight_decay=self.cfg.vicreg.optim.weight_decay,
+                # https://arxiv.org/pdf/2105.04906.pdf
+                # section 4.2
+                lr=self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.base_lr,
+            )
+        else:
+            assert False
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
@@ -236,15 +251,19 @@ def app(cfg: DictConfig) -> None:
             logger=logger,
             limit_train_batches=cfg.vicreg.limit_train_batches,
             max_epochs=1,
-            #precision=cfg.precision,
-            detect_anomaly=True, # useful logs about when and where the Nan or inf anomaly happens
+            # precision=cfg.precision,
+            detect_anomaly=True,  # useful logs about when and where the Nan or inf anomaly happens
             accelerator=cfg.accelerator,
             strategy=cfg.strategy,
             devices=cfg.devices,
-#            callbacks = [vicreg_model_checkpoint],
+            #            callbacks = [vicreg_model_checkpoint],
+            #            callbacks = [vicreg_model_checkpoint, ORTCallback()],
+            # Doesn't work with our CUDA version :(
+            # https://github.com/Lightning-AI/lightning-bolts
+            #            callbacks = ORTCallback(),
         )
-#        from copy import deepcopy
-#        deepcopy(vicreg_trainer.callback_metrics)
+        #        from copy import deepcopy
+        #        deepcopy(vicreg_trainer.callback_metrics)
         vicreg_trainer.fit(
             vicreg,  # vicreg_scaler, vicreg_optimizer,
             train_dataloaders=train_batch_num_dataloader,
