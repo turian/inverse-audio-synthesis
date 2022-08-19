@@ -24,19 +24,16 @@ PREDICT_BATCH_SIZE = 1024
 
 
 import os
-from hydra import initialize, initialize_config_module, initialize_config_dir, compose
-from omegaconf import OmegaConf
 
+from hydra import (compose, initialize, initialize_config_dir,
+                   initialize_config_module)
+from omegaconf import OmegaConf
 
 # %load_ext autoreload
 # %autoreload 2
 
 
-import os
-from hydra import initialize, initialize_config_module, initialize_config_dir, compose
-from omegaconf import OmegaConf
 
-from omegaconf import OmegaConf
 
 cfg = OmegaConf.load("conf/config.yaml")
 
@@ -52,7 +49,6 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
@@ -62,13 +58,12 @@ from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -183,12 +178,12 @@ with torch.no_grad():
     test_audio_repr = vicreg.projector(vicreg.backbone2(test_audio))
 # -
 
+import IPython.display
 import matplotlib.pyplot
 
 # +
 # mrstft = auraloss.freq.MultiResolutionSTFTLoss()
 
-import IPython.display
 
 # +
 # TODO: Remove dropout from downstream

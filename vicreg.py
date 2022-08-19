@@ -20,7 +20,7 @@ class VICReg(nn.Module):
         #        self.backbone = nn.Identity()
         self.backbone1 = backbone1
         self.backbone2 = backbone2
-        self.embedding = 1000
+        self.embedding = cfg.dim
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )

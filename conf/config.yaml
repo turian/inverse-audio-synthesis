@@ -7,8 +7,8 @@ num_workers: 1
 log: wand
 #log: null
 
-# torchvision outputs 1000 dimensional vectors
-dim: 1000
+#dim: 512
+dim: 256
 
 # Number of torchsynth voice params
 nparams: 78
@@ -22,13 +22,13 @@ torchsynth:
     rate: 44100
 
 vicreg:
-    do_pretrain: False
+    do_pretrain: True
 
-    continue_from: "vicreg.pth"
-#    continue_from: null
+#    continue_from: "vicreg.pth"
+    continue_from: null
 
     # Set this as large as possible
-    batch_size: 256
+    batch_size: 512
 
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False
@@ -37,7 +37,9 @@ vicreg:
 #    checkpoint_every_nbatches: 10
     checkpoint_every_nbatches: 10000
 
-    mlp: "1024-1024-%d"
+    # Otherwise this will be the biggest module in vicreg
+    mlp: "256-256-%d"
+    #    mlp: "1024-1024-%d"
 
     sim_coeff: 25.0
     std_coeff: 25.0
@@ -47,10 +49,8 @@ vicreg:
     pretrained_vision_model: True
 
 audio_repr_to_params:
-    use_lars: False
-
     # Smaller for downstream???? IDK WHY
-    batch_size: 8
+    batch_size: 4
 
 mel:
     n_fft: 1024

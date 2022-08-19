@@ -10,3 +10,5 @@ omegaconf
 
 black
 isort
+
+prettytable

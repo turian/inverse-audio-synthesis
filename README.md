@@ -3,6 +3,7 @@ Inverse audio synthesis
 
 TODO:
 * More magic numbers in py files to config
+* Play with the dim, smaller than 256 might be fine.
 
 
 BUGS:

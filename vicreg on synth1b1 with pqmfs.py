@@ -16,23 +16,22 @@ import soundfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
 import torchaudio.transforms
 import torchvision
 from omegaconf import DictConfig, OmegaConf
+from prettytable import PrettyTable
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
 from torch import Tensor
-
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
-
 # from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import \
+    mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import audio_repr_to_params
@@ -42,6 +41,21 @@ from paramembed import ParamEmbed
 from pqmf import PQMF
 from utils import utcnowstr
 from vicreg import VICReg
+
+
+# https://stackoverflow.com/a/62508086/82733
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params += params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
 
 
 def pretrain_vicreg(
@@ -88,10 +102,13 @@ def pretrain_vicreg(
     paramembed = ParamEmbed(nparams=cfg.nparams, dim=cfg.dim)
     paramembed = paramembed.to(device)
 
-    audio_repr = AudioEmbedding(pqmf, vision_model, img_preprocess=img_preprocess)
+    audio_repr = AudioEmbedding(
+        pqmf, vision_model, img_preprocess=img_preprocess, dim=cfg.dim
+    )
 
     # vicreg = VICReg(cfg=cfg, backbone1 = paramembed, backbone2 = paramembed)
     vicreg = VICReg(cfg=cfg, backbone1=paramembed, backbone2=audio_repr)
+    count_parameters(vicreg)
     # vicreg = VICReg(cfg=cfg, backbone1 = audio_repr, backbone2 = audio_repr)
     vicreg = vicreg.to(device)
 
@@ -251,31 +268,26 @@ def app(cfg: DictConfig) -> None:
     vicreg_scaler = torch.cuda.amp.GradScaler()
 
     if cfg.log == "wand":
+
         wandrun = wandb.init(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
             #      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
             #      name=f"experiment_{run}",
-            #      # Track hyperparameters and run metadata
-            #      config={
-            #      "learning_rate": 0.02,
-            #      "architecture": "CNN",
-            #      "dataset": "CIFAR-100",
-            #      "epochs": 10,
-            #      }
+            config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
         )
+
     else:
         wandrun = None
 
     vicreg = pretrain_vicreg(
-        cfg, device, voice, train_batch_num_dataloader, mel_spectrogram, wandrun
+        cfg, device, train_batch_num_dataloader, mel_spectrogram, wandrun
     )
 
     audio_repr_to_params.train(
         cfg=cfg,
         device=device,
         vicreg=vicreg,
-        voice=voice,
         train_batch_num_dataloader=train_batch_num_dataloader,
         val_batch_num_dataloader=val_batch_num_dataloader,
         test_batch_num_dataloader=test_batch_num_dataloader,
