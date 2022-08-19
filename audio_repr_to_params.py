@@ -1,6 +1,5 @@
 import math
 import sys
-from tkinter import W
 
 import soundfile
 import torch

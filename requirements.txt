@@ -2,7 +2,8 @@ torch
 pynvml
 torchaudio
 torchvision
-hydra - core
+hydra-core
 soundfile
 wandb
 git+https://github.com/torchsynth/torchsynth
+omegaconf

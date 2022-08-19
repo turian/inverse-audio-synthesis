@@ -1,8 +1,4 @@
 # Use the largest batchsize possible
-# Smaller for downstream???? IDK WHY
-#batch_size: 8
-# Good for pretrain:
-batch_size: 256
 
 num_batches: 50000000
 
@@ -26,8 +22,13 @@ torchsynth:
     rate: 44100
 
 vicreg:
+    do_pretrain: False
+
     continue_from: "vicreg.pth"
 #    continue_from: null
+
+    # Set this as large as possible
+    batch_size: 256
 
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False
@@ -47,6 +48,9 @@ vicreg:
 
 audio_repr_to_params:
     use_lars: False
+
+    # Smaller for downstream???? IDK WHY
+    batch_size: 8
 
 mel:
     n_fft: 1024
