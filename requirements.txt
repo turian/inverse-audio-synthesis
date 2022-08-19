@@ -6,7 +6,7 @@ torchvision
 hydra-core
 soundfile
 wandb
-git+https://github.com/torchsynth/torchsynth
+torchsynth
 omegaconf
 
 black

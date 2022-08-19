@@ -9,6 +9,7 @@ TODO:
 
 * Try sashimi backbone: https://github.com/HazyResearch/state-spaces/tree/main/sashimi
 * Try audio diffusion: https://github.com/archinetai/audio-diffusion-pytorch
+* Try musika: https://arxiv.org/abs/2208.08706
 
 
 BUGS:
