@@ -32,7 +32,7 @@ vicreg:
     # limit_train_batches: 100
 
     # Set this as large as possible
-    batch_size: 512
+    batch_size: 2048
 
     # Using LARS will require some gnarly pytorch DDP rewrite or pytorch lightning etc port
     use_lars: False

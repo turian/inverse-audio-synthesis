@@ -194,7 +194,9 @@ def app(cfg: DictConfig) -> None:
         mel_scale=cfg.mel.mel_scale,
     )
 
-    vicreg_scaler = torch.cuda.amp.GradScaler()
+    #vicreg_scaler = torch.cuda.amp.GradScaler()
+
+    vicreg = VicregAudioParams(cfg, mel_spectrogram)
 
     if cfg.log == "wand":
         logger = WandbLogger(
@@ -203,12 +205,13 @@ def app(cfg: DictConfig) -> None:
             #      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
             #      name=f"experiment_{run}",
             config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
+            # Log model checkpoints as they get created during training
+            log_model="all"
         )
+        logger.watch(vicreg)
 
     else:
         logger = None
-
-    vicreg = VicregAudioParams(cfg, mel_spectrogram)
 
     if cfg.vicreg.do_pretrain:
         vicreg_model_checkpoint = ModelCheckpoint(
