@@ -123,6 +123,7 @@ class VicregAudioParams(pl.LightningModule):
             buffer_size_seconds=self.cfg.torchsynth.buffer_size_seconds,
         )
         self.voice = Voice(synthconfig=self.synthconfig)
+        # BUG: Why???????
         self.voice.to(self.device)
 
     def training_step(self, batch, batch_idx):
