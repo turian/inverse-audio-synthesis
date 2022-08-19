@@ -165,10 +165,10 @@ class VicregAudioParams(pl.LightningModule):
             # 10 warmup epochs and with final value of 0.002."
             return flash.core.optimizers.LARS(
                 self.parameters(),
-                weight_decay=self.cfg.vicreg.optim.weight_decay,
+                weight_decay=self.cfg.vicreg.optim.args.weight_decay,
                 # https://arxiv.org/pdf/2105.04906.pdf
                 # section 4.2
-                lr=self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.base_lr,
+                lr=self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.args.base_lr,
             )
         else:
             assert False
