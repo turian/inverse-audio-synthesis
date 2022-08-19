@@ -1,0 +1,15 @@
+rvencu: then no problem, stay within 1-4 gpus range and you are fine
+"also make sure all you scripts and data stay on /fsx this is the persistent storage
+"
+
+ssh username@login.hpc.stability.ai
+# on a head node run screen
+srun --comment Harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --exclusive --pty bash -i
+
+python3.8 -m venv venv
+source /fsx/turian/inverse-audio-synthesis/venv/bin/activate
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+pip3 install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu113
+
+The next level up would be making a SLURM batch script, yeah
+
