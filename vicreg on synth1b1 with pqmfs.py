@@ -113,7 +113,7 @@ class VicregAudioParams(pl.LightningModule):
 
         # TODO: Swap order of these everywhere?
         self.vicreg = VICReg(
-            cfg=cfg, backbone1=self.paramembed, backbone2=self.audio_repr
+            cfg=cfg, backbone_audio=self.audio_repr, backbone_param=self.paramembed
         )
         # count_parameters(vicreg)
 
@@ -140,7 +140,9 @@ class VicregAudioParams(pl.LightningModule):
         audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
-        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(params, audio)
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
+            audio=audio, params=params
+        )
         self.log("vicreg/loss", vicreg_loss)
         self.log("vicreg/repr_loss", repr_loss)
         self.log("vicreg/std_loss", std_loss)

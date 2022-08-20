@@ -13,31 +13,32 @@ import wandb
 
 
 class VICReg(nn.Module):
-    def __init__(self, cfg, backbone1, backbone2):
+    def __init__(
+        self,
+        cfg,
+        backbone_audio,
+        backbone_param,
+    ):
         super().__init__()
         self.cfg = cfg
         self.num_features = cfg.dim
         #        self.backbone = nn.Identity()
-        self.backbone1 = backbone1
-        self.backbone2 = backbone2
+        self.backbone_audio = backbone_audio
+        self.backbone_param = backbone_param
         self.embedding = cfg.dim
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )
         self.projector = Projector(cfg, self.embedding)
 
-    def forward(self, x, y):
-        #        x = self.projector(self.backbone(x))
-        #        y = self.projector(self.backbone(y))
-        x = self.projector(self.backbone1(x))
-        y = self.projector(self.backbone2(y))
-        # print(x)
-        # print(y)
+    def forward(self, audio, params):
+        x = self.projector(self.backbone_audio(audio))
+        y = self.projector(self.backbone_param(params))
 
         repr_loss = F.mse_loss(x, y)
 
-        #       x = torch.cat(FullGatherLayer.apply(x), dim=0)
-        #       y = torch.cat(FullGatherLayer.apply(y), dim=0)
+        # x = torch.cat(FullGatherLayer.apply(x), dim=0)
+        # y = torch.cat(FullGatherLayer.apply(y), dim=0)
         x = x - x.mean(dim=0)
         y = y - y.mean(dim=0)
 
