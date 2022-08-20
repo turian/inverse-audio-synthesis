@@ -60,7 +60,7 @@ def app(cfg: DictConfig) -> None:
 
     ntest_batches = cfg.ntest_batches
     ntrain_batches = int((cfg.num_batches - ntest_batches) * 0.9)
-    #ntest_batches = cfg.num_batches - ntrain_batches - nval_batches
+    # ntest_batches = cfg.num_batches - ntrain_batches - nval_batches
     nval_batches = cfg.num_batches - ntrain_batches - ntest_batches
     (
         train_batch_num_dataset,
@@ -176,7 +176,9 @@ def app(cfg: DictConfig) -> None:
             train_dataloaders=train_batch_num_dataloader,
         )
 
-        audio_to_params_trainer.test(audio_to_params, dataloaders=test_batch_num_dataloader)
+        audio_to_params_trainer.test(
+            audio_to_params, dataloaders=test_batch_num_dataloader
+        )
 
     if cfg.log == "wand":
         wandb.finish()

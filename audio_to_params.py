@@ -1,10 +1,14 @@
 import flash.core
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import DictConfig
 from torch import Tensor
+from torchsynth.config import SynthConfig
+from torchsynth.synth import Voice
 
+import wandb
 from vicreg_audio_params import VicregAudioParams
 
 
@@ -186,6 +190,17 @@ class AudioToParams(pl.LightningModule):
             dropout=cfg.audio_to_params.dropout,
         )
 
+        # We need a new one of these every time we change the batch size,
+        # which varies model to model. And might me we don't holdout correctly :(
+        synthconfig = SynthConfig(
+            batch_size=cfg.audio_to_params.batch_size,
+            reproducible=cfg.torchsynth.reproducible,
+            sample_rate=cfg.torchsynth.rate,
+            buffer_size_seconds=cfg.torchsynth.buffer_size_seconds,
+        )
+        self.voice = Voice(synthconfig=synthconfig)
+        self.voice = self.voice.to(self.device)
+
     def _step(self, batch, batch_idx, name):
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
@@ -218,6 +233,59 @@ class AudioToParams(pl.LightningModule):
 
         self.log(f"audio_to_params/{name}/loss", repr_loss)
         self.log(f"audio_to_params/{name}/frozen_vicreg_loss", frozen_vicreg_loss)
+
+        #        if name == "test":
+        if name is not None:
+            # Generate and log audio
+            for param_name, param_value in zip(
+                self.voice.get_parameters().keys(), predicted_params.T
+            ):
+                param_name1, param_name2 = param_name
+                getattr(self.voice, param_name1).set_parameter_0to1(
+                    param_name2, param_value
+                )
+
+            with torch.no_grad():
+                self.voice.freeze_parameters(self.voice.get_parameters().keys())
+                # # WHY??????
+                self.voice = self.voice.to(self.device)
+                (
+                    predicted_audio,
+                    predicted_predicted_params,
+                    predicted_is_train,
+                ) = self.voice(None)
+                self.voice.unfreeze_all_parameters()
+
+            # TODO: Also resynth params to make sure that's okay? as a sanity check
+            columns = ["name", "batch", "num", "test_audio", "pred_audio"]
+            data = []
+            audio_cpu = audio.detach().cpu()
+            predicted_audio_cpu = predicted_audio.detach().cpu()
+            for i in range(16):
+#                self.logger.log(
+#                    f"audio-{name}/{batch_idx}/{i}-true",
+#                    wandb.Audio(audio_cpu[i, 0], sample_rate=self.cfg.torchsynth.rate),
+#                )
+#                self.logger.log(
+#                    f"audio-{name}/{batch_idx}/{i}-predict",
+#                    wandb.Audio(
+#                        predicted_audio_cpu[i], sample_rate=self.cfg.torchsynth.rate
+#                    ),
+#                )
+                data.append(
+                    [
+                        name,
+                        batch_idx,
+                        i,
+                        wandb.Audio(
+                            audio_cpu[i, 0], sample_rate=self.cfg.torchsynth.rate
+                        ),
+                        wandb.Audio(
+                            predicted_audio_cpu[i], sample_rate=self.cfg.torchsynth.rate
+                        ),
+                    ]
+                )
+            self.logger.log_table(key="samples", columns=columns, data=data)
 
         return repr_loss
 
