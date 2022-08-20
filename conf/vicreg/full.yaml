@@ -29,12 +29,12 @@ cov_coeff: 1.0
 pretrained_vision_model: True
 
 optim:
-#  name: "sgd"
-#  args:
-#   lr: 0.1
-  name: "lars"
+  name: "sgd"
   args:
-    base_lr: 2.0
-    weight_decay: 1e-6
-    # In LARS we use base_lr instead
-    lr: null
+   lr: 0.1
+#  name: "lars"
+#  args:
+#    base_lr: 2.0
+#    weight_decay: 1e-6
+#    # In LARS we use base_lr instead
+#    lr: null
