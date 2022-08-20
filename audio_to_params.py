@@ -199,18 +199,25 @@ class AudioToParams(pl.LightningModule):
         audio, params, is_train = self.vicreg.voice(voice_batch_num)
         audio = audio.unsqueeze(1)
 
-        audio_repr = self.vicreg.audio_repr(audio)
-        audio_embedding = self.vicreg.vicreg.projector(audio_repr)
+        true_params_repr = self.vicreg.vicreg.backbone_param(params)
+        true_params_embedding = self.vicreg.vicreg.projector(true_params_repr)
+
+        audio_repr = self.vicreg.vicreg.backbone_audio(audio)
+        true_audio_embedding = self.vicreg.vicreg.projector(audio_repr)
 
         predicted_params = self.audio_repr_to_params.forward(audio_repr)
 
-        predicted_params_embedding = self.vicreg.vicreg.projector(predicted_params)
+        predicted_params_repr = self.vicreg.vicreg.backbone_param(predicted_params)
+        predicted_params_embedding = self.vicreg.vicreg.projector(predicted_params_repr)
 
-        repr_loss = F.mse_loss(audio_embedding, predicted_params_embedding)
+        repr_loss = F.mse_loss(true_params_embedding, predicted_params_embedding)
+        # This is purely diagnostic, since vicreg is frozen
+        frozen_vicreg_loss = F.mse_loss(true_params_embedding, true_audio_embedding)
 
         # TODO: Auraloss?
 
         self.log("audio_to_params/loss", repr_loss)
+        self.log("audio_to_params/frozen_vicreg_loss", frozen_vicreg_loss)
 
         sch = self.lr_schedulers()
 
