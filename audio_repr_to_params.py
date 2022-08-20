@@ -1,25 +1,7 @@
-import math
-import sys
-
-import soundfile
-import torch
 import torch.nn as nn
 
-# import torch.distributed as dist
-import torch.optim as optim
-from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
-from torchsynth.config import SynthConfig
 
-# from torch_audiomentations import Compose, Gain, PolarityInversion
-from torchsynth.synth import Voice
-
-# from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
-from tqdm.auto import tqdm
-
-import wandb
-from utils import utcnowstr
 from vicreg import VICReg
 
 
@@ -49,7 +31,7 @@ class AudioRepresentationToParams(nn.Module):
         return x
 
 
-#def train_audio_to_params_through_torchsynth(
+# def train_audio_to_params_through_torchsynth(
 #    cfg: DictConfig,
 #    device: torch.device,
 #    vicreg: VICReg,
@@ -57,14 +39,14 @@ class AudioRepresentationToParams(nn.Module):
 #    val_batch_num_dataloader,
 #    test_batch_num_dataloader,
 #    mel_spectrogram,
-#) -> None:
+# ) -> None:
 #    """
 #    Do audio
 #        =(vicreg)=> audiorepr
 #        =(new repr to params)=> params
 #        =(torchsynth) => audio
 #        and compute true vs predicted audio mel MSE.
-#	    TBH this probably won't work because you have to backprop
+# 	    TBH this probably won't work because you have to backprop
 #    	through torchsynth :\
 #    """
 #
@@ -167,4 +149,4 @@ class AudioRepresentationToParams(nn.Module):
 ##        audio_repr_to_params_scaler.step(audio_repr_to_params_optimizer)
 ##        audio_repr_to_params_scaler.update()
 #
-#train = train_audio_to_params
+# train = train_audio_to_params

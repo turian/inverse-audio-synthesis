@@ -11,6 +11,10 @@ TODO:
 * Try audio diffusion: https://github.com/archinetai/audio-diffusion-pytorch
 * Try musika: https://arxiv.org/abs/2208.08706
 
+* Transfer learning to dexed patches:
+https://github.com/gwendal-lv/preset-gen-vae/blob/main/synth/dexed.py
+* Transfer learning to surge preset + MIDI note
+* Try to generate drum sounds or some non torchsynth sounds
 
 BUGS:
 * We use a batch_size of 128 for vicreg pretraining and a batch_size of
@@ -30,3 +34,11 @@ a combined network. The experiment showed that spectral (visual),
 waveform (sequential), and statistical (numerical) sound feature
 information altogether improved the generalizability of the model."
 (https://arxiv.org/pdf/2205.03043.pdf)
+
+
+Make sure you have pre-commit hooks installed:
+```
+pre-commit install
+```
+This helps us avoid checking dirty jupyter notebook cells into the
+repo.
