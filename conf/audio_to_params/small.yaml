@@ -1,0 +1,23 @@
+
+batch_size: 1024
+
+# Used in heareval
+hidden_norm: nn.BatchNorm1d
+#hidden_norm: nn.Identity
+# Used in heareval
+dropout: 0.1
+
+checkpoint_every_nbatches: 100
+#checkpoint_every_nbatches: 10
+
+# limit_train_batches: null
+limit_train_batches: 100
+
+optim:
+#  name: "sgd"
+#  args:
+#    lr: 0.1
+  name: "lars"
+  args:
+    base_lr: 2.0
+    weight_decay: 1e-6

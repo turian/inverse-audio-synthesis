@@ -25,46 +25,15 @@ seed: 42
 
 ntest_batches: 1
 
+defaults:
+  - vicreg: full
+  - audio_to_params: small
+
 torchsynth:
     reproducible: False
     buffer_size_seconds: 4.0
     # torchsynth default
     rate: 44100
-
-vicreg:
-    do_pretrain: True
-    # do_pretrain: False
-
-    limit_train_batches: null
-    # limit_train_batches: 100
-
-    # Set this as large as possible
-    batch_size: 1024
-    # For precision 16
-    #    batch_size: 2048
-
-#    checkpoint_every_nbatches: 10000
-    checkpoint_every_nbatches: 1000
-    #checkpoint_every_nbatches: 10
-
-    # Otherwise this will be the biggest module in vicreg
-    mlp: "256-256-%d"
-    #    mlp: "1024-1024-%d"
-
-    sim_coeff: 25.0
-    std_coeff: 25.0
-    cov_coeff: 1.0
-
-    pretrained_vision_model: True
-
-    optim:
-#      name: "sgd"
-#      args:
-#        lr: 0.1
-      name: "lars"
-      args:
-        base_lr: 2.0
-        weight_decay: 1e-6
 
 param_embed:
     # Used in heareval
@@ -73,30 +42,6 @@ param_embed:
     # Used in heareval
     dropout: 0.1
 
-
-audio_to_params:
-    batch_size: 1024
-
-    # Used in heareval
-    hidden_norm: nn.BatchNorm1d
-    #hidden_norm: nn.Identity
-    # Used in heareval
-    dropout: 0.1
-
-    checkpoint_every_nbatches: 1000
-    #checkpoint_every_nbatches: 10
-
-    limit_train_batches: null
-    # limit_train_batches: 100
-
-    optim:
-#      name: "sgd"
-#      args:
-#        lr: 0.1
-      name: "lars"
-      args:
-        base_lr: 2.0
-        weight_decay: 1e-6
 
 #mel:
 #    n_fft: 1024
