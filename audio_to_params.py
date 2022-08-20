@@ -186,7 +186,7 @@ class AudioToParams(pl.LightningModule):
             dropout=cfg.audio_to_params.dropout,
         )
 
-    def training_step(self, batch, batch_idx):
+    def _step(self, batch, batch_idx, name):
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
         voice_batch_num = batch.detach().cpu().numpy()
@@ -216,14 +216,24 @@ class AudioToParams(pl.LightningModule):
 
         # TODO: Auraloss?
 
-        self.log("audio_to_params/loss", repr_loss)
-        self.log("audio_to_params/frozen_vicreg_loss", frozen_vicreg_loss)
+        self.log(f"audio_to_params/{name}/loss", repr_loss)
+        self.log(f"audio_to_params/{name}/frozen_vicreg_loss", frozen_vicreg_loss)
+
+        return repr_loss
+
+    def training_step(self, batch, batch_idx):
+        repr_loss = self._step(batch, batch_idx, "train")
 
         sch = self.lr_schedulers()
 
         # step every N batches
         if (batch_idx + 1) % 10000 == 0:
             sch.step()
+
+        return repr_loss
+
+    def test_step(self, batch, batch_idx):
+        repr_loss = self._step(batch, batch_idx, "test")
 
         return repr_loss
 

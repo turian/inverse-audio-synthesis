@@ -23,6 +23,8 @@ nparams: 78
 
 seed: 42
 
+ntest_batches: 1
+
 torchsynth:
     reproducible: False
     buffer_size_seconds: 4.0
@@ -30,8 +32,8 @@ torchsynth:
     rate: 44100
 
 vicreg:
-    do_pretrain: True
-#    do_pretrain: False
+  #    do_pretrain: True
+    do_pretrain: False
 
     # limit_train_batches: null
     limit_train_batches: 100
@@ -83,8 +85,8 @@ audio_to_params:
     checkpoint_every_nbatches: 10000
     #checkpoint_every_nbatches: 10
 
-    limit_train_batches: null
-    # limit_train_batches: 100
+    # limit_train_batches: null
+    limit_train_batches: 100
 
     optim:
 #      name: "sgd"
