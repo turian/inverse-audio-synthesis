@@ -21,7 +21,7 @@ from pytorch_lightning.loggers import WandbLogger
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
-import audio_to_params
+from audio_to_params import AudioToParams
 import wandb
 from vicreg_audio_params import VicregAudioParams
 
@@ -75,6 +75,7 @@ def app(cfg: DictConfig) -> None:
     val_batch_num_dataloader = torch.utils.data.DataLoader(val_batch_num_dataset)
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
+    """
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
         sample_rate=cfg.torchsynth.rate,
         n_fft=cfg.mel.n_fft,
@@ -88,10 +89,11 @@ def app(cfg: DictConfig) -> None:
         n_mels=cfg.mel.n_mels,
         mel_scale=cfg.mel.mel_scale,
     )
+    """
 
     # vicreg_scaler = torch.cuda.amp.GradScaler()
 
-    vicreg = VicregAudioParams(cfg, mel_spectrogram)
+    vicreg = VicregAudioParams(cfg)
 
     if cfg.log == "wand":
         logger = WandbLogger(
@@ -140,6 +142,9 @@ def app(cfg: DictConfig) -> None:
             train_dataloaders=train_batch_num_dataloader,
         )
 
+    audio_to_params = AudioToParams(cfg, vicreg)
+
+    """
     audio_repr_to_params.train(
         cfg=cfg,
         #        device=device,
@@ -149,6 +154,7 @@ def app(cfg: DictConfig) -> None:
         test_batch_num_dataloader=test_batch_num_dataloader,
         mel_spectrogram=mel_spectrogram,
     )
+    """
 
     if cfg.log == "wand":
         wandb.finish()

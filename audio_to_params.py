@@ -174,6 +174,15 @@ class AudioToParams(pl.LightningModule):
         self.cfg = cfg
 
         self.vicreg = vicreg
+        self.vicreg.freeze()
+        self.vicreg.eval()
+
+        self.audio_repr_to_params = AudioRepresentationToParams(
+            nparams=cfg.nparams,
+            dim=cfg.dim,
+            hidden_norm=cfg.audio_repr_to_params.hidden_norm,
+            dropout=cfg.audio_repr_to_params.dropout,
+        )
 
     def training_step(self, batch, batch_idx):
         # TODO: Try removing CPU move
@@ -182,17 +191,24 @@ class AudioToParams(pl.LightningModule):
         assert len(voice_batch_num) == 1
         voice_batch_num = voice_batch_num[0].item()
 
+        self.vicreg.freeze()
+        self.vicreg.eval()
+
         audio, params, is_train = self.voice(voice_batch_num)
         audio = audio.unsqueeze(1)
-        #  audio2 = apply_augmentation(audio)
 
-        audio_to_params_loss, repr_loss, std_loss, cov_loss = self.audio_to_params(
-            audio=audio, params=params
-        )
-        self.log("audio_to_params/loss", audio_to_params_loss)
-        self.log("audio_to_params/repr_loss", repr_loss)
-        self.log("audio_to_params/std_loss", std_loss)
-        self.log("audio_to_params/cov_loss", cov_loss)
+        audio_repr = self.vicreg.audio_repr(audio)
+        audio_embedding = self.vicreg.vicreg.projector(audio_repr)
+
+        predicted_params = self.audio_repr_to_params.forward(audio_repr)
+
+        predicted_params_embedding = self.vicreg.vicreg.projector(predicted_params)
+
+        repr_loss = F.mse_loss(audio_embedding, predicted_params_embedding)
+
+        # TODO: Auraloss?
+
+        self.log("audio_to_params/loss", repr_loss)
 
         sch = self.lr_schedulers()
 
@@ -200,7 +216,7 @@ class AudioToParams(pl.LightningModule):
         if (batch_idx + 1) % 10000 == 0:
             sch.step()
 
-        return audio_to_params_loss
+        return repr_loss
 
     def configure_optimizers(self):
         if self.cfg.audio_to_params.optim.name == "sgd":

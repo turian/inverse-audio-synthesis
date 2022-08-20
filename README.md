@@ -10,6 +10,8 @@ TODO:
 * Try audio diffusion: https://github.com/archinetai/audio-diffusion-pytorch
 * Try musika: https://arxiv.org/abs/2208.08706
 
+* Try mel instead of PQMF
+
 * Transfer learning to dexed patches:
 https://github.com/gwendal-lv/preset-gen-vae/blob/main/synth/dexed.py
 * Transfer learning to surge preset + MIDI note

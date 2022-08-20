@@ -22,7 +22,7 @@ from vicreg import VICReg
 
 
 class VicregAudioParams(pl.LightningModule):
-    def __init__(self, cfg: DictConfig, mel_spectrogram) -> None:
+    def __init__(self, cfg: DictConfig) -> None:
         super().__init__()
 
         self.cfg = cfg

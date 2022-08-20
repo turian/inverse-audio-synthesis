@@ -1,12 +1,12 @@
 #precision: 16
 # Try this to avoid NaN too late through
 #precision: bf16
-accelerator: "gpu"
-#devices: 1
-devices: 2
-strategy: "ddp"
-#accelerator: "cpu"
-#devices: 1
+#accelerator: "gpu"
+##devices: 1
+#devices: 2
+#strategy: "ddp"
+accelerator: "cpu"
+devices: 1
 
 num_batches: 50000000
 
@@ -30,7 +30,8 @@ torchsynth:
     rate: 44100
 
 vicreg:
-    do_pretrain: True
+#    do_pretrain: True
+    do_pretrain: False
 
     limit_train_batches: null
     # limit_train_batches: 100
@@ -75,6 +76,12 @@ audio_to_params:
     # Smaller for downstream???? IDK WHY
     batch_size: 4
 
+    # Used in heareval
+    hidden_norm: nn.BatchNorm1d
+    #hidden_norm: nn.Identity
+    # Used in heareval
+    dropout: 0.1
+
     optim:
 #      name: "sgd"
 #      args:
@@ -84,14 +91,14 @@ audio_to_params:
         base_lr: 2.0
         weight_decay: 1e-6
 
-mel:
-    n_fft: 1024
-    win_length: null
-    hop_length: 512
-    center: True
-    pad_mode: "reflect"
-    power: 2.0
-    norm: "slaney"
-    onesided: True
-    n_mels: 128
-    mel_scale: "htk"
+#mel:
+#    n_fft: 1024
+#    win_length: null
+#    hop_length: 512
+#    center: True
+#    pad_mode: "reflect"
+#    power: 2.0
+#    norm: "slaney"
+#    onesided: True
+#    n_mels: 128
+#    mel_scale: "htk"
