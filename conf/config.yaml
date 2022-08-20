@@ -71,7 +71,7 @@ param_embed:
     dropout: 0.1
 
 
-audio_repr_to_params:
+audio_to_params:
     # Smaller for downstream???? IDK WHY
     batch_size: 4
 

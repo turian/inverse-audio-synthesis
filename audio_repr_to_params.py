@@ -150,3 +150,60 @@ class AudioRepresentationToParams(nn.Module):
 ##        audio_repr_to_params_scaler.update()
 #
 # train = train_audio_to_params
+
+
+class AudioToParams(pl.LightningModule):
+    def __init__(self, cfg: DictConfig, vicreg: VicregAudioParams) -> None:
+        super().__init__()
+
+        self.cfg = cfg
+
+        self.vicreg = vicreg
+
+    def training_step(self, batch, batch_idx):
+        # TODO: Try removing CPU move
+        assert batch.detach().cpu().numpy().shape == (1,)
+        voice_batch_num = batch.detach().cpu().numpy()
+        assert len(voice_batch_num) == 1
+        voice_batch_num = voice_batch_num[0].item()
+
+        audio, params, is_train = self.voice(voice_batch_num)
+        audio = audio.unsqueeze(1)
+        #  audio2 = apply_augmentation(audio)
+
+        audio_to_params_loss, repr_loss, std_loss, cov_loss = self.audio_to_params(
+            audio=audio, params=params
+        )
+        self.log("audio_to_params/loss", audio_to_params_loss)
+        self.log("audio_to_params/repr_loss", repr_loss)
+        self.log("audio_to_params/std_loss", std_loss)
+        self.log("audio_to_params/cov_loss", cov_loss)
+
+        sch = self.lr_schedulers()
+
+        # step every N batches
+        if (batch_idx + 1) % 10000 == 0:
+            sch.step()
+
+        return audio_to_params_loss
+
+    def configure_optimizers(self):
+        if self.cfg.audio_to_params.optim.name == "sgd":
+            return optim.SGD(self.parameters(), **self.cfg.audio_to_params.optim.args)
+        elif self.cfg.audio_to_params.optim.name == "lars":
+            # TODO: Add cosine scheduler?
+            # https://arxiv.org/pdf/2105.04906.pdf
+            # Section 4.2: "The learning rate follows a cosine decay
+            # schedule Loshchilov & Hutter (2017), starting from 0 with
+            # 10 warmup epochs and with final value of 0.002."
+            return flash.core.optimizers.LARS(
+                self.parameters(),
+                weight_decay=self.cfg.audio_to_params.optim.args.weight_decay,
+                # https://arxiv.org/pdf/2105.04906.pdf
+                # section 4.2
+                lr=self.cfg.audio_to_params.batch_size
+                / 256
+                * self.cfg.audio_to_params.optim.args.base_lr,
+            )
+        else:
+            assert False
