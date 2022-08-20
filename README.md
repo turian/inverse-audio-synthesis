@@ -2,6 +2,10 @@
 Inverse audio synthesis
 
 TODO:
+* Multigpu doesn't really train much faster, I think the original fb vicreg uses
+`torch.cat(FullGatherLayer.apply(x), dim=0)` which we commented out, for some kind of
+GPU batch syncing.
+
 * Make sure to use .train for training models and .eval for eval
 * More magic numbers in py files to config
 * Play with the dim, smaller than 256 might be fine.
