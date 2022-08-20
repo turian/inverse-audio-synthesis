@@ -113,7 +113,7 @@ class VicregAudioParams(pl.LightningModule):
 
     def configure_optimizers(self):
         if self.cfg.vicreg.optim.name == "sgd":
-            return optim.SGD(self.parameters(), **self.cfg.vicreg.optim.args)
+            return optim.SGD(self.parameters(), lr=self.cfg.vicreg.optim.args.lr)
         elif self.cfg.vicreg.optim.name == "lars":
             # TODO: Add cosine scheduler?
             # https://arxiv.org/pdf/2105.04906.pdf

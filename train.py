@@ -15,7 +15,6 @@ import torch
 # import torch.distributed as dist
 import torchaudio
 import torchaudio.transforms
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning import Trainer, seed_everything
@@ -25,6 +24,7 @@ from pytorch_lightning.loggers import WandbLogger
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
+import wandb
 from audio_to_params import AudioToParams
 from vicreg_audio_params import VicregAudioParams
 
@@ -100,8 +100,8 @@ def app(cfg: DictConfig) -> None:
     vicreg = VicregAudioParams(cfg)
 
     if cfg.log == "wand":
-#        if not os.path.exists("/tmp/turian-wandb/wandb/"):
-#            os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
+        #        if not os.path.exists("/tmp/turian-wandb/wandb/"):
+        #            os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
         logger = WandbLogger(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
@@ -110,7 +110,7 @@ def app(cfg: DictConfig) -> None:
             config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
             # Log model checkpoints as they get created during training
             log_model="all",
-#            save_dir="/tmp/turian-wandb",
+            #            save_dir="/tmp/turian-wandb",
         )
         logger.watch(vicreg)
 

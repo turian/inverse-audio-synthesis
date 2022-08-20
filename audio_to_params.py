@@ -4,12 +4,12 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb
 from omegaconf import DictConfig
 from torch import Tensor
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
 
+import wandb
 from vicreg_audio_params import VicregAudioParams
 
 
