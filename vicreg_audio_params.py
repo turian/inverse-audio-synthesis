@@ -31,9 +31,7 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
-        self.passt_model = load_model().to(self.device)
-
-"""
+        """
         # Use 3 channels for RGB image (not 4 which is PQMF default)
         self.pqmf = PQMF(N=3)
 
@@ -58,6 +56,7 @@ class VicregAudioParams(pl.LightningModule):
         self.img_preprocess = torchvision.transforms.Normalize(%s
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
         )
+        """
 
         self.paramembed = ParamEmbed(
             nparams=cfg.nparams,
@@ -66,21 +65,17 @@ class VicregAudioParams(pl.LightningModule):
             dropout=cfg.param_embed.dropout,
         )
 
-        self.audio_repr = AudioEmbedding(
-            self.pqmf,
-            self.vision_model,
-            img_preprocess=self.img_preprocess,
-            dim=cfg.dim,
-        )
+#        self.audio_repr = AudioEmbedding(
+#            self.pqmf,
+#            self.vision_model,
+#            img_preprocess=self.img_preprocess,
+#            dim=cfg.dim,
+#        )
 
-        # TODO: Swap order of these everywhere?
+        self.passt_model = load_model().to(self.device)
+#        self.passt_model.forward = self.passt_model.get_scene_embeddings
 
-        self.audio_repr = AudioEmbedding(
-            self.pqmf,
-            self.vision_model,
-            img_preprocess=self.img_preprocess,
-            dim=cfg.dim,
-        )
+        self.audio_repr = self.passt_model
 
         # TODO: Swap order of these everywhere?
         self.vicreg = VICReg(
@@ -108,7 +103,7 @@ class VicregAudioParams(pl.LightningModule):
         voice_batch_num = voice_batch_num[0].item()
 
         audio, params, is_train = self.voice(voice_batch_num)
-        audio = audio.unsqueeze(1)
+#        audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
         vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
