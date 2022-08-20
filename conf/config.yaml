@@ -35,8 +35,8 @@ vicreg:
     do_pretrain: True
     # do_pretrain: False
 
-    # limit_train_batches: null
-    limit_train_batches: 100
+    limit_train_batches: null
+    # limit_train_batches: 100
 
     # Set this as large as possible
     batch_size: 1024
@@ -83,11 +83,11 @@ audio_to_params:
     # Used in heareval
     dropout: 0.1
 
-    checkpoint_every_nbatches: 10000
+    checkpoint_every_nbatches: 1000
     #checkpoint_every_nbatches: 10
 
-    # limit_train_batches: null
-    limit_train_batches: 100
+    limit_train_batches: null
+    # limit_train_batches: 100
 
     optim:
 #      name: "sgd"
