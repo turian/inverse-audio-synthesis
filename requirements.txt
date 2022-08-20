@@ -1,16 +1,16 @@
+torchsynth
+
 # --------- pytorch --------- #
 torch>=1.10.0
 torchvision>=0.11.0
 pytorch-lightning==1.7.1
 torchmetrics==0.9.2
-
-# --------- hydra --------- #
-hydra-core==1.2.0
-hydra-colorlog==1.2.0
-hydra-optuna-sweeper==1.2.0
+#lightning-bolts
+lightning-flash
+torchaudio
 
 # --------- loggers --------- #
-# wandb
+wandb
 # neptune-client
 # mlflow
 # comet-ml
@@ -21,3 +21,11 @@ pre-commit      # hooks for applying linters on commit
 rich            # beautiful text formatting in terminal
 pytest          # tests
 sh              # for running bash commands in some tests
+pynvml
+hydra-core
+omegaconf
+soundfile
+black
+isort
+prettytable
+
