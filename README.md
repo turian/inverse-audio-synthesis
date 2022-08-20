@@ -2,7 +2,6 @@
 Inverse audio synthesis
 
 TODO:
-* Dropout in downstream!
 * Make sure to use .train for training models and .eval for eval
 * More magic numbers in py files to config
 * Play with the dim, smaller than 256 might be fine.
