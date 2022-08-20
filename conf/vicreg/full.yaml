@@ -9,8 +9,10 @@ batch_size: 1024
 # For precision 16
 #batch_size: 2048
 
-#checkpoint_every_nbatches: 10000
-checkpoint_every_nbatches: 1000
+# Each checkpoint is around 1GB so
+# too frequent it wandb will be costly.
+checkpoint_every_nbatches: 10000
+#checkpoint_every_nbatches: 1000
 #checkpoint_every_nbatches: 10
 
 # Otherwise this will be the biggest module in vicreg
