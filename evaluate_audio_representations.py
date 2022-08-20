@@ -40,6 +40,7 @@ import datetime
 import math
 import sys
 
+import audio_repr_to_params
 import hydra
 import numpy as np
 import soundfile
@@ -65,7 +66,6 @@ from torchsynth.synth import Voice
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
-import audio_repr_to_params
 import wandb
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
