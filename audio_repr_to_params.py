@@ -49,7 +49,7 @@ class AudioRepresentationToParams(nn.Module):
         return x
 
 
-def train_audio_to_params(
+def train_audio_to_params_through_torchsynth(
     cfg: DictConfig,
     device: torch.device,
     vicreg: VICReg,
@@ -58,6 +58,16 @@ def train_audio_to_params(
     test_batch_num_dataloader,
     mel_spectrogram,
 ) -> None:
+    """
+    Do audio
+        =(vicreg)=> audiorepr
+        =(new repr to params)=> params
+        =(torchsynth) => audio
+        and compute true vs predicted audio mel MSE.
+	    TBH this probably won't work because you have to backprop
+    	through torchsynth :\
+    """
+
     # We need a new one of these every time we change the batch size,
     # which varies model to model. And might me we don't holdout correctly :(
     synthconfig = SynthConfig(
