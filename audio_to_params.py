@@ -235,8 +235,7 @@ class AudioToParams(pl.LightningModule):
         self.log(f"audio_to_params/{name}/loss", repr_loss)
         self.log(f"audio_to_params/{name}/frozen_vicreg_loss", frozen_vicreg_loss)
 
-        #        if name == "test":
-        if name is not None:
+        if name == "test":
             # Generate and log audio
             for param_name, param_value in zip(
                 self.voice.get_parameters().keys(), predicted_params.T
