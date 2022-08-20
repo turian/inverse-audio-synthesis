@@ -49,6 +49,7 @@ def count_parameters(model):
 def app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
+    os.environ["WANDB_CACHE_DIR"] = "/fsx/turian/.cache"
     wandb.login()
 
     seed_everything(42, workers=True)
