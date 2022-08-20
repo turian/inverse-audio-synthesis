@@ -4,8 +4,8 @@ rvencu: then no problem, stay within 1-4 gpus range and you are fine
 
 ssh username@login.hpc.stability.ai
 # on a head node run screen
-srun --comment Harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --exclusive --pty bash -i
-srun --comment Harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --exclusive --pty bash -i
+srun --comment harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --pty bash -i
+srun --comment harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --pty bash -i
 
 cd /fsx/turian/inverse-audio-synthesis/
 
