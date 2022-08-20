@@ -100,8 +100,8 @@ def app(cfg: DictConfig) -> None:
     vicreg = VicregAudioParams(cfg)
 
     if cfg.log == "wand":
-        if not os.path.exists("/tmp/turian-wandb/wandb/"):
-            os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
+#        if not os.path.exists("/tmp/turian-wandb/wandb/"):
+#            os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
         logger = WandbLogger(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
@@ -110,7 +110,7 @@ def app(cfg: DictConfig) -> None:
             config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
             # Log model checkpoints as they get created during training
             log_model="all",
-            save_dir="/tmp/turian-wandb",
+#            save_dir="/tmp/turian-wandb",
         )
         logger.watch(vicreg)
 
