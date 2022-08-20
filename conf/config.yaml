@@ -60,8 +60,7 @@ vicreg:
 #        lr: 0.1
       name: "lars"
       args:
-#        base_lr: 0.2
-        base_lr: 0.64
+        base_lr: 2.0
         weight_decay: 1e-6
 
 param_embed:
