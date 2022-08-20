@@ -1,7 +1,9 @@
+import pytorch_lightning as pl
 import torch.nn as nn
+from omegaconf import DictConfig
 from torch import Tensor
 
-from vicreg import VICReg
+from vicreg_audio_params import VicregAudioParams
 
 
 class AudioRepresentationToParams(nn.Module):
