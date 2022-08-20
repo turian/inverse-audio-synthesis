@@ -1,19 +1,19 @@
 #precision: 16
 # Try this to avoid NaN too late through
 #precision: bf16
-#accelerator: "gpu"
-##devices: 1
-#devices: 2
+accelerator: "gpu"
+#devices: 1
+devices: 2
+#accelerator: "cpu"
+#devices: 1
 strategy: "ddp"
-accelerator: "cpu"
-devices: 1
 
 num_batches: 50000000
 
 num_workers: 1
 
-#log: wand
-log: null
+log: wand
+#log: null
 
 #dim: 512
 dim: 256
@@ -30,11 +30,11 @@ torchsynth:
     rate: 44100
 
 vicreg:
-#    do_pretrain: True
-    do_pretrain: False
+    do_pretrain: True
+#    do_pretrain: False
 
-    limit_train_batches: null
-    # limit_train_batches: 100
+    # limit_train_batches: null
+    limit_train_batches: 100
 
     # Set this as large as possible
     batch_size: 1024
@@ -72,8 +72,7 @@ param_embed:
 
 
 audio_to_params:
-    # Smaller for downstream???? IDK WHY
-    batch_size: 4
+    batch_size: 1024
 
     # Used in heareval
     hidden_norm: nn.BatchNorm1d
