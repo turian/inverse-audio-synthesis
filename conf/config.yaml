@@ -4,7 +4,7 @@
 #accelerator: "gpu"
 ##devices: 1
 #devices: 2
-#strategy: "ddp"
+strategy: "ddp"
 accelerator: "cpu"
 devices: 1
 
@@ -12,8 +12,8 @@ num_batches: 50000000
 
 num_workers: 1
 
-log: wand
-#log: null
+#log: wand
+log: null
 
 #dim: 512
 dim: 256
@@ -43,7 +43,6 @@ vicreg:
 
     checkpoint_every_nbatches: 10000
     #checkpoint_every_nbatches: 10
-#    checkpoint_every_nbatches: 1000
 
     # Otherwise this will be the biggest module in vicreg
     mlp: "256-256-%d"
@@ -81,6 +80,12 @@ audio_to_params:
     #hidden_norm: nn.Identity
     # Used in heareval
     dropout: 0.1
+
+    checkpoint_every_nbatches: 10000
+    #checkpoint_every_nbatches: 10
+
+    limit_train_batches: null
+    # limit_train_batches: 100
 
     optim:
 #      name: "sgd"

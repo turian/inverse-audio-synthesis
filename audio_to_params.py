@@ -1,5 +1,7 @@
+import flash.core
 import pytorch_lightning as pl
 import torch.nn as nn
+import torch.nn.functional as F
 from omegaconf import DictConfig
 from torch import Tensor
 
@@ -180,8 +182,8 @@ class AudioToParams(pl.LightningModule):
         self.audio_repr_to_params = AudioRepresentationToParams(
             nparams=cfg.nparams,
             dim=cfg.dim,
-            hidden_norm=cfg.audio_repr_to_params.hidden_norm,
-            dropout=cfg.audio_repr_to_params.dropout,
+            hidden_norm=cfg.audio_to_params.hidden_norm,
+            dropout=cfg.audio_to_params.dropout,
         )
 
     def training_step(self, batch, batch_idx):
@@ -194,7 +196,7 @@ class AudioToParams(pl.LightningModule):
         self.vicreg.freeze()
         self.vicreg.eval()
 
-        audio, params, is_train = self.voice(voice_batch_num)
+        audio, params, is_train = self.vicreg.voice(voice_batch_num)
         audio = audio.unsqueeze(1)
 
         audio_repr = self.vicreg.audio_repr(audio)

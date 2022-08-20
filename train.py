@@ -21,8 +21,8 @@ from pytorch_lightning.loggers import WandbLogger
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
-from audio_to_params import AudioToParams
 import wandb
+from audio_to_params import AudioToParams
 from vicreg_audio_params import VicregAudioParams
 
 """
@@ -143,18 +143,37 @@ def app(cfg: DictConfig) -> None:
         )
 
     audio_to_params = AudioToParams(cfg, vicreg)
-
-    """
-    audio_repr_to_params.train(
-        cfg=cfg,
-        #        device=device,
-        vicreg=vicreg,
-        train_batch_num_dataloader=train_batch_num_dataloader,
-        val_batch_num_dataloader=val_batch_num_dataloader,
-        test_batch_num_dataloader=test_batch_num_dataloader,
-        mel_spectrogram=mel_spectrogram,
-    )
-    """
+    if vicreg is not None:
+        audio_to_params_model_checkpoint = ModelCheckpoint(
+            every_n_train_steps=cfg.audio_to_params.checkpoint_every_nbatches,
+            dirpath="chkpts/",
+            filename="audio_to_params-{epoch:02d}-{step:04d}",
+            monitor=None,
+            save_last=True,
+        )
+        # TODO: Remove limit_train_batches
+        audio_to_params_trainer = Trainer(
+            logger=logger,
+            limit_train_batches=cfg.audio_to_params.limit_train_batches,
+            max_epochs=1,
+            # precision=cfg.precision,
+            detect_anomaly=True,  # useful logs about when and where the Nan or inf anomaly happens
+            accelerator=cfg.accelerator,
+            strategy=cfg.strategy,
+            devices=cfg.devices,
+            deterministic=True,
+            callbacks=[audio_to_params_model_checkpoint],
+            # callbacks = [audio_to_params_model_checkpoint, ORTCallback()],
+            # Doesn't work with our CUDA version :(
+            # https://github.com/Lightning-AI/lightning-bolts
+            # callbacks = ORTCallback(),
+        )
+        #        from copy import deepcopy
+        #        deepcopy(audio_to_params_trainer.callback_metrics)
+        audio_to_params_trainer.fit(
+            audio_to_params,  # audio_to_params_scaler, audio_to_params_optimizer,
+            train_dataloaders=train_batch_num_dataloader,
+        )
 
     if cfg.log == "wand":
         wandb.finish()
