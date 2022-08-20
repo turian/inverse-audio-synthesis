@@ -36,10 +36,3 @@ waveform (sequential), and statistical (numerical) sound feature
 information altogether improved the generalizability of the model."
 (https://arxiv.org/pdf/2205.03043.pdf)
 
-
-Make sure you have pre-commit hooks installed:
-```
-pre-commit install
-```
-This helps us avoid checking dirty jupyter notebook cells into the
-repo.
