@@ -32,18 +32,18 @@ torchsynth:
     rate: 44100
 
 vicreg:
-  #    do_pretrain: True
-    do_pretrain: False
+    do_pretrain: True
+    # do_pretrain: False
 
-    # limit_train_batches: null
-    limit_train_batches: 100
+    limit_train_batches: null
+    # limit_train_batches: 100
 
     # Set this as large as possible
     batch_size: 1024
     # For precision 16
     #    batch_size: 2048
 
-    checkpoint_every_nbatches: 10000
+    checkpoint_every_nbatches: 100
     #checkpoint_every_nbatches: 10
 
     # Otherwise this will be the biggest module in vicreg
