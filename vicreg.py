@@ -7,9 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import Tensor
-
 import wandb
+from torch import Tensor
 
 
 class VICReg(nn.Module):

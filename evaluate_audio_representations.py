@@ -53,6 +53,7 @@ import torch.optim as optim
 import torchaudio
 import torchaudio.transforms
 import torchvision
+import wandb
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning.lite import LightningLite
@@ -66,7 +67,6 @@ from torchsynth.synth import Voice
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
-import wandb
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
