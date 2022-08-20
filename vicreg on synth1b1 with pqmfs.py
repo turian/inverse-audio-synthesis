@@ -27,7 +27,7 @@ import torchvision
 from omegaconf import DictConfig, OmegaConf
 from prettytable import PrettyTable
 from pynvml import *
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.loggers import WandbLogger
@@ -180,6 +180,9 @@ def app(cfg: DictConfig) -> None:
 
     wandb.login()
 
+    seed_everything(42, workers=True)
+
+
     # BUG: We use a batch_size of 128 for vicreg pretraining and a batch_size of
     # 4 for downstream inverse synthesis. However, we are not careful about
     # our train/test splits so test for downstream might have been used as
@@ -256,11 +259,12 @@ def app(cfg: DictConfig) -> None:
             accelerator=cfg.accelerator,
             strategy=cfg.strategy,
             devices=cfg.devices,
+            deterministic=True,
             callbacks = [vicreg_model_checkpoint],
-            #            callbacks = [vicreg_model_checkpoint, ORTCallback()],
+            # callbacks = [vicreg_model_checkpoint, ORTCallback()],
             # Doesn't work with our CUDA version :(
             # https://github.com/Lightning-AI/lightning-bolts
-            #            callbacks = ORTCallback(),
+            # callbacks = ORTCallback(),
         )
         #        from copy import deepcopy
         #        deepcopy(vicreg_trainer.callback_metrics)
