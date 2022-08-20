@@ -168,7 +168,9 @@ class VicregAudioParams(pl.LightningModule):
                 weight_decay=self.cfg.vicreg.optim.args.weight_decay,
                 # https://arxiv.org/pdf/2105.04906.pdf
                 # section 4.2
-                lr=self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.args.base_lr,
+                lr=self.cfg.vicreg.batch_size
+                / 256
+                * self.cfg.vicreg.optim.args.base_lr,
             )
         else:
             assert False
@@ -181,7 +183,6 @@ def app(cfg: DictConfig) -> None:
     wandb.login()
 
     seed_everything(42, workers=True)
-
 
     # BUG: We use a batch_size of 128 for vicreg pretraining and a batch_size of
     # 4 for downstream inverse synthesis. However, we are not careful about
@@ -260,7 +261,7 @@ def app(cfg: DictConfig) -> None:
             strategy=cfg.strategy,
             devices=cfg.devices,
             deterministic=True,
-            callbacks = [vicreg_model_checkpoint],
+            callbacks=[vicreg_model_checkpoint],
             # callbacks = [vicreg_model_checkpoint, ORTCallback()],
             # Doesn't work with our CUDA version :(
             # https://github.com/Lightning-AI/lightning-bolts
