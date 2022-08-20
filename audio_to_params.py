@@ -1,4 +1,5 @@
 import flash.core
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -234,8 +235,7 @@ class AudioToParams(pl.LightningModule):
         self.log(f"audio_to_params/{name}/loss", repr_loss)
         self.log(f"audio_to_params/{name}/frozen_vicreg_loss", frozen_vicreg_loss)
 
-        #        if name == "test":
-        if name is not None:
+        if name == "test":
             # Generate and log audio
             for param_name, param_value in zip(
                 self.voice.get_parameters().keys(), predicted_params.T
@@ -257,35 +257,20 @@ class AudioToParams(pl.LightningModule):
                 self.voice.unfreeze_all_parameters()
 
             # TODO: Also resynth params to make sure that's okay? as a sanity check
-            columns = ["name", "batch", "num", "test_audio", "pred_audio"]
-            data = []
             audio_cpu = audio.detach().cpu()
             predicted_audio_cpu = predicted_audio.detach().cpu()
+            silence = torch.zeros(self.cfg.torchsynth.rate // 2)
             for i in range(16):
-#                self.logger.log(
-#                    f"audio-{name}/{batch_idx}/{i}-true",
-#                    wandb.Audio(audio_cpu[i, 0], sample_rate=self.cfg.torchsynth.rate),
-#                )
-#                self.logger.log(
-#                    f"audio-{name}/{batch_idx}/{i}-predict",
-#                    wandb.Audio(
-#                        predicted_audio_cpu[i], sample_rate=self.cfg.torchsynth.rate
-#                    ),
-#                )
-                data.append(
-                    [
-                        name,
-                        batch_idx,
-                        i,
-                        wandb.Audio(
-                            audio_cpu[i, 0], sample_rate=self.cfg.torchsynth.rate
-                        ),
-                        wandb.Audio(
-                            predicted_audio_cpu[i], sample_rate=self.cfg.torchsynth.rate
-                        ),
-                    ]
+                self.logger.experiment.log(
+                    {
+                        f"audio-{name}/{batch_idx}/{i}": wandb.Audio(
+                            torch.cat(
+                                [audio_cpu[i, 0], silence, predicted_audio_cpu[i]]
+                            ),
+                            sample_rate=self.cfg.torchsynth.rate,
+                        )
+                    }
                 )
-            self.logger.log_table(key="samples", columns=columns, data=data)
 
         return repr_loss
 

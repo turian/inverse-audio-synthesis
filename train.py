@@ -6,6 +6,9 @@
 # * Interleave pretraining and downstream
 # * multigpu
 
+import os
+import os.path
+
 import hydra
 import torch
 
@@ -46,6 +49,7 @@ def count_parameters(model):
 def app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
+    os.environ["WANDB_CACHE_DIR"] = "/fsx/turian/.cache"
     wandb.login()
 
     seed_everything(42, workers=True)
@@ -97,6 +101,8 @@ def app(cfg: DictConfig) -> None:
     vicreg = VicregAudioParams(cfg)
 
     if cfg.log == "wand":
+        #        if not os.path.exists("/tmp/turian-wandb/wandb/"):
+        #            os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
         logger = WandbLogger(
             # Set the project where this run will be logged
             project="vicreg-synth1b1-pqmfs",
@@ -105,6 +111,7 @@ def app(cfg: DictConfig) -> None:
             config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
             # Log model checkpoints as they get created during training
             log_model="all",
+            #            save_dir="/tmp/turian-wandb",
         )
         logger.watch(vicreg)
 
@@ -114,7 +121,7 @@ def app(cfg: DictConfig) -> None:
     if cfg.vicreg.do_pretrain:
         vicreg_model_checkpoint = ModelCheckpoint(
             every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
-            dirpath="chkpts/",
+            #            dirpath="chkpts/",
             filename="vicreg-{epoch:02d}-{step:04d}",
             monitor=None,
             save_last=True,

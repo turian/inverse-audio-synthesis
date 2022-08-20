@@ -103,17 +103,11 @@ class VicregAudioParams(pl.LightningModule):
         self.log("vicreg/std_loss", std_loss)
         self.log("vicreg/cov_loss", cov_loss)
 
-        sch = self.lr_schedulers()
-
-        # step every N batches
-        if (batch_idx + 1) % 10000 == 0:
-            sch.step()
-
         return vicreg_loss
 
     def configure_optimizers(self):
         if self.cfg.vicreg.optim.name == "sgd":
-            return optim.SGD(self.parameters(), **self.cfg.vicreg.optim.args)
+            return optim.SGD(self.parameters(), lr=self.cfg.vicreg.optim.args.lr)
         elif self.cfg.vicreg.optim.name == "lars":
             # TODO: Add cosine scheduler?
             # https://arxiv.org/pdf/2105.04906.pdf
