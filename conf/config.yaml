@@ -2,10 +2,9 @@
 # Try this to avoid NaN too late through
 #precision: bf16
 accelerator: "gpu"
-#devices: 1
-devices: 2
+#devices: 2
+devices: 1
 #accelerator: "cpu"
-#devices: 1
 strategy: "ddp"
 
 num_batches: 50000000

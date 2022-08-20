@@ -103,12 +103,6 @@ class VicregAudioParams(pl.LightningModule):
         self.log("vicreg/std_loss", std_loss)
         self.log("vicreg/cov_loss", cov_loss)
 
-        sch = self.lr_schedulers()
-
-        # step every N batches
-        if (batch_idx + 1) % 10000 == 0:
-            sch.step()
-
         return vicreg_loss
 
     def configure_optimizers(self):
