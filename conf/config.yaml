@@ -1,8 +1,8 @@
 #precision: 16
 # Try this to avoid NaN too late through
 #precision: bf16
-#accelerator: "gpu"
-accelerator: "cpu"
+accelerator: "gpu"
+#accelerator: "cpu"
 #devices: 2
 devices: 1
 strategy: "ddp"
@@ -11,8 +11,8 @@ num_batches: 50000000
 
 num_workers: 1
 
-#log: wand
-log: null
+log: wand
+#log: null
 
 #dim: 512
 #dim: 256

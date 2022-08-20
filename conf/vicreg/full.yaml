@@ -5,7 +5,10 @@ limit_train_batches: null
 # limit_train_batches: 100
 
 # Set this as large as possible
-batch_size: 1024
+## For efficientnet
+#batch_size: 1024
+# For passt
+batch_size: 64
 # For precision 16
 #batch_size: 2048
 
