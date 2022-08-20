@@ -11,6 +11,10 @@ from omegaconf import DictConfig
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
 
+
+from hear21passt.base import load_model, get_scene_embeddings, get_timestamp_embeddings
+
+
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
@@ -27,6 +31,9 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
+        self.passt_model = load_model().to(self.device)
+
+"""
         # Use 3 channels for RGB image (not 4 which is PQMF default)
         self.pqmf = PQMF(N=3)
 
@@ -48,7 +55,7 @@ class VicregAudioParams(pl.LightningModule):
         # preprocess = weights.transforms()
 
         # torchvision 0.12.0 :(
-        self.img_preprocess = torchvision.transforms.Normalize(
+        self.img_preprocess = torchvision.transforms.Normalize(%s
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
         )
 
@@ -58,6 +65,15 @@ class VicregAudioParams(pl.LightningModule):
             hidden_norm=cfg.param_embed.hidden_norm,
             dropout=cfg.param_embed.dropout,
         )
+
+        self.audio_repr = AudioEmbedding(
+            self.pqmf,
+            self.vision_model,
+            img_preprocess=self.img_preprocess,
+            dim=cfg.dim,
+        )
+
+        # TODO: Swap order of these everywhere?
 
         self.audio_repr = AudioEmbedding(
             self.pqmf,

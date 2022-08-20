@@ -9,6 +9,8 @@ torchmetrics==0.9.2
 lightning-flash
 torchaudio
 
+git+https://github.com/kkoutini/passt_hear21@0.0.17#egg=hear21passt
+
 # --------- loggers --------- #
 wandb
 # neptune-client
