@@ -75,6 +75,15 @@ audio_to_params:
     # Smaller for downstream???? IDK WHY
     batch_size: 4
 
+    optim:
+#      name: "sgd"
+#      args:
+#        lr: 0.1
+      name: "lars"
+      args:
+        base_lr: 2.0
+        weight_decay: 1e-6
+
 mel:
     n_fft: 1024
     win_length: null
