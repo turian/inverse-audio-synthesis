@@ -11,8 +11,8 @@ num_batches: 50000000
 
 num_workers: 1
 
-log: wand
-#log: null
+#log: wand
+log: null
 
 #dim: 512
 dim: 256

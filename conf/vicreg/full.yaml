@@ -1,6 +1,3 @@
-do_pretrain: True
-# do_pretrain: False
-
 limit_train_batches: null
 # limit_train_batches: 100
 

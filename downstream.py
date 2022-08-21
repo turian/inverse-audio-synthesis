@@ -24,24 +24,6 @@ import wandb
 from audio_to_params import AudioToParams
 from vicreg_audio_params import VicregAudioParams
 
-def plot_filter_range(vicreg, logger):
-        # Show a plot of what the filter values are like
-        # on an excerpt from music
-        (audio, _rate) = torchaudio.load("daddy.wav")
-        audio.to(vicreg.device)
-        y = vicreg.gram(audio.unsqueeze(1)).flatten()
-        y = y.detach().cpu().numpy()
-        np.random.shuffle(y)
-        y = y[:1000]
-        x = np.arange(0, len(y))
-        data = [[x, y] for (x, y) in zip(x.tolist(), sorted(y.tolist()))]
-        table = wandb.Table(data=data, columns = ["x", "y"])
-        logger.experiment.log(
-            {
-                "audio range": wandb.plot.line(table, "x", "y", title="Filter range")
-            }
-        )
-
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
@@ -77,26 +59,6 @@ def app(cfg: DictConfig) -> None:
     val_batch_num_dataloader = torch.utils.data.DataLoader(val_batch_num_dataset)
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
-    """
-    mel_spectrogram = torchaudio.transforms.MelSpectrogram(
-        sample_rate=cfg.torchsynth.rate,
-        n_fft=cfg.mel.n_fft,
-        win_length=cfg.mel.win_length,
-        hop_length=cfg.mel.hop_length,
-        center=cfg.mel.center,
-        pad_mode=cfg.mel.pad_mode,
-        power=cfg.mel.power,
-        norm=cfg.mel.norm,
-        onesided=cfg.mel.onesided,
-        n_mels=cfg.mel.n_mels,
-        mel_scale=cfg.mel.mel_scale,
-    )
-    """
-
-    # vicreg_scaler = torch.cuda.amp.GradScaler()
-
-    vicreg = VicregAudioParams(cfg)
-
     if cfg.log == "wand":
         # if not os.path.exists("/tmp/turian-wandb/wandb/"):
         #   os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
@@ -113,22 +75,23 @@ def app(cfg: DictConfig) -> None:
         # We don't use gradients much and the use a lot of logging space
         # logger.watch(vicreg)
 
-        plot_filter_range(vicreg, logger)
+        #plot_filter_range(vicreg, logger)
     else:
         logger = None
 
-if cfg.vicreg.do_pretrain:
-    vicreg_model_checkpoint = ModelCheckpoint(
-        every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
-        #            dirpath="chkpts/",
-        filename="vicreg-{epoch:02d}-{step:04d}",
+    vicreg = VicregAudioParams.load_from_checkpoint("vicreg.ckpt", cfg=cfg)
+    audio_to_params = AudioToParams(cfg, vicreg)
+    audio_to_params_model_checkpoint = ModelCheckpoint(
+        every_n_train_steps=cfg.audio_to_params.checkpoint_every_nbatches,
+        dirpath="chkpts/",
+        filename="audio_to_params-{epoch:02d}-{step:04d}",
         monitor=None,
         save_last=True,
     )
     # TODO: Remove limit_train_batches
-    vicreg_trainer = Trainer(
+    audio_to_params_trainer = Trainer(
         logger=logger,
-        limit_train_batches=cfg.vicreg.limit_train_batches,
+        limit_train_batches=cfg.audio_to_params.limit_train_batches,
         max_epochs=1,
         # precision=cfg.precision,
         detect_anomaly=True,  # useful logs about when and where the Nan or inf anomaly happens
@@ -136,17 +99,21 @@ if cfg.vicreg.do_pretrain:
         strategy=cfg.strategy,
         devices=cfg.devices,
         deterministic=True,
-        callbacks=[vicreg_model_checkpoint],
-        # callbacks = [vicreg_model_checkpoint, ORTCallback()],
+        callbacks=[audio_to_params_model_checkpoint],
+        # callbacks = [audio_to_params_model_checkpoint, ORTCallback()],
         # Doesn't work with our CUDA version :(
         # https://github.com/Lightning-AI/lightning-bolts
         # callbacks = ORTCallback(),
     )
     #        from copy import deepcopy
-    #        deepcopy(vicreg_trainer.callback_metrics)
-    vicreg_trainer.fit(
-        vicreg,  # vicreg_scaler, vicreg_optimizer,
+    #        deepcopy(audio_to_params_trainer.callback_metrics)
+    audio_to_params_trainer.fit(
+        audio_to_params,  # audio_to_params_scaler, audio_to_params_optimizer,
         train_dataloaders=train_batch_num_dataloader,
+    )
+
+    audio_to_params_trainer.test(
+        audio_to_params, dataloaders=test_batch_num_dataloader
     )
 
     if cfg.log == "wand":
