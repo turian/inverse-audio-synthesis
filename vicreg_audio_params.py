@@ -22,6 +22,7 @@ from tqdm.auto import tqdm
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
+from nnAudio import features
 from vicreg import VICReg
 
 
@@ -32,7 +33,9 @@ class VicregAudioParams(pl.LightningModule):
         self.cfg = cfg
 
         # Use 3 channels for RGB image (not 4 which is PQMF default)
-        self.gram = PQMF(N=3)
+        #self.gram = PQMF(N=3)
+        # TODO: Make these params
+        self.gram = features.MelSpectrogram(sr=cfg.torchsynth.rate, n_fft=2048, n_mels=256, hop_length=512, window='hann', center=True, pad_mode='reflect', power=2.0, htk=False, fmin=0.0, fmax=None, norm=1, trainable_mel=False, trainable_STFT=False, verbose=True)
 
         # New weights with accuracy 80.858%
         # https://pytorch.org/vision/stable/models.html

@@ -30,7 +30,8 @@ import wandb
 from audio_to_params import AudioToParams
 from vicreg_audio_params import VicregAudioParams
 
-"""
+from prettytable import PrettyTable
+
 # https://stackoverflow.com/a/62508086/82733
 def count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
@@ -44,7 +45,6 @@ def count_parameters(model):
     print(table)
     print(f"Total Trainable Params: {total_params}")
     return total_params
-"""
 
 
 def plot_filter_range(vicreg, logger):
@@ -141,6 +141,7 @@ def app(cfg: DictConfig) -> None:
         logger = None
 
     if cfg.vicreg.do_pretrain:
+        count_parameters(vicreg)
         vicreg_model_checkpoint = ModelCheckpoint(
             every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
             #            dirpath="chkpts/",
