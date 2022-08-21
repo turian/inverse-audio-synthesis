@@ -6,6 +6,8 @@
 # * Interleave pretraining and downstream
 # * multigpu
 
+import numpy as np
+
 import os
 import os.path
 
@@ -44,6 +46,24 @@ def count_parameters(model):
     return total_params
 """
 
+
+def plot_filter_range(vicreg, logger):
+        # Show a plot of what the filter values are like
+        # on an excerpt from music
+        (audio, _rate) = torchaudio.load("daddy.wav")
+        audio.to(vicreg.device)
+        y = vicreg.gram(audio.unsqueeze(1)).flatten()
+        y = y.detach().cpu().numpy()
+        np.random.shuffle(y)
+        y = y[:1000]
+        x = np.arange(0, len(y))
+        data = [[x, y] for (x, y) in zip(x.tolist(), sorted(y.tolist()))]
+        table = wandb.Table(data=data, columns = ["x", "y"])
+        logger.experiment.log(
+            {
+                "audio range": wandb.plot.line(table, "x", "y", title="Filter range")
+            }
+        )
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def app(cfg: DictConfig) -> None:
@@ -116,6 +136,7 @@ def app(cfg: DictConfig) -> None:
         # We don't use gradients much and the use a lot of logging space
         # logger.watch(vicreg)
 
+        #plot_filter_range(vicreg, logger)
     else:
         logger = None
 

@@ -32,7 +32,7 @@ class VicregAudioParams(pl.LightningModule):
         self.cfg = cfg
 
         # Use 3 channels for RGB image (not 4 which is PQMF default)
-        self.pqmf = PQMF(N=3)
+        self.gram = PQMF(N=3)
 
         # New weights with accuracy 80.858%
         # https://pytorch.org/vision/stable/models.html
@@ -64,7 +64,7 @@ class VicregAudioParams(pl.LightningModule):
         )
 
         self.audio_repr = AudioEmbedding(
-            self.pqmf,
+            self.gram,
             self.vision_model,
             img_preprocess=self.img_preprocess,
             dim=cfg.dim,
@@ -88,30 +88,7 @@ class VicregAudioParams(pl.LightningModule):
         # BUG: Why???????
         self.voice.to(self.device)
 
-        self.have_plot_filter_range = False
-
-    def _plot_filter_range(self):
-        # Show a plot of what the filter values are like
-        # on an excerpt from music
-        (audio, _rate) = torchaudio.load("daddy.wav")
-        audio.to(self.device)
-        y = self.audio_repr(audio.unsqueeze(1)).flatten()
-        y = y.detach().cpu().numpy()
-        x = np.arange(0, len(y))
-        data = [[x, y] for (x, y) in zip(x.tolist(), sorted(y.tolist()))]
-        table = wandb.Table(data=data, columns = ["x", "y"])
-        self.logger.experiment.log(
-            {
-                "audio range": wandb.plot.line(table, "x", "y", title="Filter range")
-            }
-        )
-
     def training_step(self, batch, batch_idx):
-        if not self.have_plot_filter_range:
-            with torch.no_grad():
-                self._plot_filter_range()
-                self.have_plot_filter_range = True
-
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
         voice_batch_num = batch.detach().cpu().numpy()
