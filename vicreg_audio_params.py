@@ -10,18 +10,19 @@ import torchaudio
 import torchvision
 from omegaconf import DictConfig
 
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
 
-# from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+import torchaudio
+
 from tqdm.auto import tqdm
 
 import wandb
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
-from pqmf import PQMF
 from vicreg import VICReg
 
 
@@ -31,29 +32,11 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
-        # Use 3 channels for RGB image (not 4 which is PQMF default)
-        self.gram = PQMF(N=3)
-
-        # New weights with accuracy 80.858%
-        # https://pytorch.org/vision/stable/models.html
-        # weights = ResNet50_Weights.IMAGENET1K_V2
-        # vision_model = resnet50(weights=weights)
-        # vision_model = vision_model.to(device)
-
-        # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-        # vision_model = mobilenet_v3_small(weights=weights)
-        # vision_model = vision_model.to(device)
-        # torchvision 0.12.0 :(
-        self.vision_model = mobilenet_v3_small(
-            pretrained=cfg.vicreg.pretrained_vision_model
-        )
-
-        ## Initialize the inference transforms
-        # preprocess = weights.transforms()
-
-        # torchvision 0.12.0 :(
-        self.img_preprocess = torchvision.transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+#        self.audio_model = torchaudio.models.hubert_pretrain_xlarge()
+#        model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-robust-ft-swbd-300h")
+        model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+        self.audio_model = torchaudio.models.wav2vec2.utils.import_huggingface_model(
+                model
         )
 
         self.paramembed = ParamEmbed(
@@ -64,9 +47,7 @@ class VicregAudioParams(pl.LightningModule):
         )
 
         self.audio_repr = AudioEmbedding(
-            self.gram,
-            self.vision_model,
-            img_preprocess=self.img_preprocess,
+            self.audio_model,
             dim=cfg.dim,
         )
 
@@ -96,7 +77,6 @@ class VicregAudioParams(pl.LightningModule):
         voice_batch_num = voice_batch_num[0].item()
 
         audio, params, is_train = self.voice(voice_batch_num)
-        audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
         vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(

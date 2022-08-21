@@ -53,8 +53,8 @@ def app(cfg: DictConfig) -> None:
     ) = runsetup(cfg)
 
     vicreg = VicregAudioParams(cfg)
-    if cfg.log == "wand":
-        plot_filter_range(vicreg, logger)
+#    if cfg.log == "wand":
+#        plot_filter_range(vicreg, logger)
 
     vicreg_model_checkpoint = ModelCheckpoint(
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
