@@ -4,7 +4,7 @@ limit_train_batches: null
 # Set this as large as possible
 #batch_size: 4
 #batch_size: 1024
-batch_size: 128
+batch_size: 256 # For resnet50
 # For precision 16
 #batch_size: 2048
 
