@@ -14,8 +14,8 @@ from omegaconf import DictConfig
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
 
-# from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
+from torchvision.models import resnet50, ResNet50_Weights
+# from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -37,16 +37,15 @@ class VicregAudioParams(pl.LightningModule):
         # New weights with accuracy 80.858%
         # https://pytorch.org/vision/stable/models.html
         # weights = ResNet50_Weights.IMAGENET1K_V2
-        # vision_model = resnet50(weights=weights)
-        # vision_model = vision_model.to(device)
+        self.vision_model = resnet50(
+                pretrained=cfg.vicreg.pretrained_vision_model
+                )
 
         # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-        # vision_model = mobilenet_v3_small(weights=weights)
-        # vision_model = vision_model.to(device)
         # torchvision 0.12.0 :(
-        self.vision_model = mobilenet_v3_small(
-            pretrained=cfg.vicreg.pretrained_vision_model
-        )
+#        self.vision_model = mobilenet_v3_small(
+#            pretrained=cfg.vicreg.pretrained_vision_model
+#        )
 
         ## Initialize the inference transforms
         # preprocess = weights.transforms()

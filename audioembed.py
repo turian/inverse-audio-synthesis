@@ -12,7 +12,9 @@ class AudioEmbedding(nn.Module):
 
         # 576 = number of channels in efficientnet
         # 64 just because this is one of the biggest modules in the whole vicreg :(
-        self.conv7 = nn.Conv2d(in_channels=576, out_channels=128, kernel_size=2)
+#        self.conv7 = nn.Conv2d(in_channels=576, out_channels=128, kernel_size=2)
+        # ResNet50
+        self.conv7 = nn.Conv2d(in_channels=2048, out_channels=128, kernel_size=2)
         self.conv6 = nn.Conv2d(in_channels=128, out_channels=self.dim, kernel_size=2)
         self.conv5 = nn.Conv2d(
             in_channels=self.dim, out_channels=self.dim, kernel_size=2
@@ -56,7 +58,20 @@ class AudioEmbedding(nn.Module):
         # efficientnet on 4 second audio: torch.Size([4, 576, 8, 8])
         # So we just keep convolving it down to self.dim
         # This gives us a 4 second (or so) receptive field
-        t = self.vision_model.features(self._preprocess(audio))
+#        t = self.vision_model.features(self._preprocess(audio))
+        # ResNet has no .features :(
+        x = self._preprocess(audio)
+        x = self.vision_model.conv1(x)
+        x = self.vision_model.bn1(x)
+        x = self.vision_model.relu(x)
+        x = self.vision_model.maxpool(x)
+
+        x = self.vision_model.layer1(x)
+        x = self.vision_model.layer2(x)
+        x = self.vision_model.layer3(x)
+        x = self.vision_model.layer4(x)
+        t = x
+
         t = self.conv7(t)
         t = self.conv6(t)
         t = self.conv5(t)

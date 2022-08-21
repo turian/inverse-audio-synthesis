@@ -3,6 +3,8 @@
 import hydra
 import numpy as np
 
+import torch
+
 # import torch.distributed as dist
 import torchaudio
 import torchaudio.transforms
@@ -28,7 +30,7 @@ def plot_filter_range(vicreg, logger):
     audio.to(vicreg.device)
     vicreg.eval()
     with torch.no_grad():
-        z = vicreg.audioembed._pretrain(audio.unsqueeze(1)).permute(1, 0, 2, 3)
+        z = vicreg.audio_repr._preprocess(audio.unsqueeze(1)).permute(1, 0, 2, 3)
     z = z.detach().cpu().numpy()
     # Each channel might have a different filter
     for i in range(3):
