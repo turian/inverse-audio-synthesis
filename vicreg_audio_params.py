@@ -108,8 +108,9 @@ class VicregAudioParams(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         if not self.have_plot_filter_range:
-            self._plot_filter_range()
-            self.have_plot_filter_range = True
+            with torch.no_grad():
+                self._plot_filter_range()
+                self.have_plot_filter_range = True
 
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)

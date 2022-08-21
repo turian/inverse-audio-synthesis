@@ -6,6 +6,8 @@ TODO:
 `torch.cat(FullGatherLayer.apply(x), dim=0)` which we commented out, for some kind of
 GPU batch syncing.
 
+* match 2d to 1d repr
+
 * Xavier weight initialization
 
 * Make sure to use .train for training models and .eval for eval
