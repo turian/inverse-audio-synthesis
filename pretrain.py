@@ -15,6 +15,8 @@ from pytorch_lightning.loggers import WandbLogger
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
+from vicreg_audio_params import VicregAudioParams
+
 import wandb
 from runsetup import runsetup
 
