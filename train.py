@@ -136,7 +136,7 @@ def app(cfg: DictConfig) -> None:
         # We don't use gradients much and the use a lot of logging space
         # logger.watch(vicreg)
 
-        #plot_filter_range(vicreg, logger)
+        plot_filter_range(vicreg, logger)
     else:
         logger = None
 

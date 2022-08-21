@@ -5,8 +5,8 @@ limit_train_batches: null
 # limit_train_batches: 100
 
 # Set this as large as possible
-batch_size: 4
-#batch_size: 1024
+#batch_size: 4
+batch_size: 1024
 # For precision 16
 #batch_size: 2048
 

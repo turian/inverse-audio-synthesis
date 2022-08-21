@@ -1,8 +1,8 @@
 #precision: 16
 # Try this to avoid NaN too late through
 #precision: bf16
-#accelerator: "gpu"
-accelerator: "cpu"
+accelerator: "gpu"
+#accelerator: "cpu"
 #devices: 2
 devices: 1
 strategy: "ddp"
