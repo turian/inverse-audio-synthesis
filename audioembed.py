@@ -37,10 +37,10 @@ class AudioEmbedding(nn.Module):
 
         # This will be [128, 3, 58800]
         zimg = z.reshape(-1, 3, 240, 245)
-#        # Convert float to unsigned bytes
-#        zimg8 = scale8(zimg)
-#        # torchvision 0.12.0
-#        zimg8 = zimg8.float() / 255.0
+        #        # Convert float to unsigned bytes
+        #        zimg8 = scale8(zimg)
+        #        # torchvision 0.12.0
+        #        zimg8 = zimg8.float() / 255.0
         zimg8 = zimg
 
         # Apply inference preprocessing transforms

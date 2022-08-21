@@ -1,13 +1,12 @@
 import flash.core
-import pytorch_lightning as pl
-import torch.nn.functional as F
-import torch
-import wandb
 import numpy as np
-import torchaudio
+import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
 
 # import torch.distributed as dist
 import torch.optim as optim
+import torchaudio
 import torchvision
 from omegaconf import DictConfig
 
@@ -19,6 +18,7 @@ from torchsynth.synth import Voice
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
+import wandb
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
