@@ -6,6 +6,8 @@ TODO:
 `torch.cat(FullGatherLayer.apply(x), dim=0)` which we commented out, for some kind of
 GPU batch syncing.
 
+* Xavier weight initialization
+
 * Make sure to use .train for training models and .eval for eval
 * More magic numbers in py files to config
 * Play with the dim, smaller than 256 might be fine.
