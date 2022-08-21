@@ -52,18 +52,25 @@ def plot_filter_range(vicreg, logger):
         # on an excerpt from music
         (audio, _rate) = torchaudio.load("daddy.wav")
         audio.to(vicreg.device)
-        y = vicreg.gram(audio.unsqueeze(1)).flatten()
-        y = y.detach().cpu().numpy()
-        np.random.shuffle(y)
-        y = y[:1000]
-        x = np.arange(0, len(y))
-        data = [[x, y] for (x, y) in zip(x.tolist(), sorted(y.tolist()))]
-        table = wandb.Table(data=data, columns = ["x", "y"])
-        logger.experiment.log(
-            {
-                "audio range": wandb.plot.line(table, "x", "y", title="Filter range")
-            }
-        )
+        vicreg.eval()
+        with torch.no_grad():
+            z = vicreg.audio_repr._preprocess(audio.unsqueeze(1))
+            z = z.permute(1,0,2,3)
+        z = z.detach().cpu().numpy()
+        # There are three channels, each of which might be a different kind of
+        # spectrogram. So
+        for i in range(3):
+            y = np.copy(z[i])
+            np.random.shuffle(y)
+            y = y[:1000]
+            x = np.arange(0, len(y))
+            data = [[x, y] for (x, y) in zip(x.tolist(), sorted(y.tolist()))]
+            table = wandb.Table(data=data, columns = ["x", "y"])
+            logger.experiment.log(
+                {
+                    f"filter_{i}": wandb.plot.line(table, "x", "y", title="Filter range")
+                }
+            )
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def app(cfg: DictConfig) -> None:
