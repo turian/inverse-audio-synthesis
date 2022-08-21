@@ -49,7 +49,9 @@ def app(cfg: DictConfig) -> None:
         val_batch_num_dataloader,
         test_batch_num_dataloader,
         logger,
-    ) = runsetup()
+    ) = runsetup(cfg)
+
+    vicreg = VicregAudioParams(cfg)
     if cfg.log == "wand":
         plot_filter_range(vicreg, logger)
 
