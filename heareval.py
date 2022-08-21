@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-from vicreg_audio_params import VicregAudioParams
 import hydra
-from omegaconf import DictConfig, OmegaConf
 import torch
+from omegaconf import DictConfig, OmegaConf
+
+from vicreg_audio_params import VicregAudioParams
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")

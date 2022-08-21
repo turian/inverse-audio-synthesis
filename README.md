@@ -8,6 +8,8 @@ GPU batch syncing.
 
 * match 2d to 1d repr
 
+* add EMA
+
 * Xavier weight initialization
 
 * Make sure to use .train for training models and .eval for eval
