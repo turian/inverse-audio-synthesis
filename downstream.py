@@ -32,7 +32,7 @@ def app(cfg: DictConfig) -> None:
         val_batch_num_dataloader,
         test_batch_num_dataloader,
         logger,
-    ) = runsetup()
+    ) = runsetup(cfg)
 
     vicreg = VicregAudioParams.load_from_checkpoint("vicreg.ckpt", cfg=cfg)
     audio_to_params = AudioToParams(cfg, vicreg)
