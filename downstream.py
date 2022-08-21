@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
 
-import os
-import os.path
-
 import hydra
-import numpy as np
-import torch
 
 # import torch.distributed as dist
-import torchaudio
-import torchaudio.transforms
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from pynvml import *
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
 
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
