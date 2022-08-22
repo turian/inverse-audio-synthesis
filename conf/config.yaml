@@ -42,6 +42,10 @@ param_embed:
     dropout: 0.1
 
 
+audio_embed:
+    dropout: 0.1
+
+
 #mel:
 #    n_fft: 1024
 #    win_length: null

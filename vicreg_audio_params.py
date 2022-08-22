@@ -7,15 +7,12 @@ import torch.nn.functional as F
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
-import torchvision
 from omegaconf import DictConfig
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
 from torchsynth.synth import Voice
 
-# from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 from tqdm.auto import tqdm
 
 import wandb
@@ -31,31 +28,6 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
-        # Use 3 channels for RGB image (not 4 which is PQMF default)
-        self.gram = PQMF(N=3)
-
-        # New weights with accuracy 80.858%
-        # https://pytorch.org/vision/stable/models.html
-        # weights = ResNet50_Weights.IMAGENET1K_V2
-        # vision_model = resnet50(weights=weights)
-        # vision_model = vision_model.to(device)
-
-        # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-        # vision_model = mobilenet_v3_small(weights=weights)
-        # vision_model = vision_model.to(device)
-        # torchvision 0.12.0 :(
-        self.vision_model = mobilenet_v3_small(
-            pretrained=cfg.vicreg.pretrained_vision_model
-        )
-
-        ## Initialize the inference transforms
-        # preprocess = weights.transforms()
-
-        # torchvision 0.12.0 :(
-        self.img_preprocess = torchvision.transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
-
         self.paramembed = ParamEmbed(
             nparams=cfg.nparams,
             dim=cfg.dim,
@@ -64,10 +36,9 @@ class VicregAudioParams(pl.LightningModule):
         )
 
         self.audio_repr = AudioEmbedding(
-            self.gram,
-            self.vision_model,
-            img_preprocess=self.img_preprocess,
             dim=cfg.dim,
+            # Magic number :(
+            dropout=cfg.audio_embed.dropout
         )
 
         # TODO: Swap order of these everywhere?

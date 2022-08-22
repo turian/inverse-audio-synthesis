@@ -3,7 +3,8 @@ limit_train_batches: null
 
 # Set this as large as possible
 #batch_size: 4
-batch_size: 1024
+#batch_size: 1024
+batch_size: 128
 # For precision 16
 #batch_size: 2048
 
@@ -20,8 +21,6 @@ mlp: "256-256-%d"
 sim_coeff: 25.0
 std_coeff: 25.0
 cov_coeff: 1.0
-
-pretrained_vision_model: True
 
 optim:
   name: "sgd"
