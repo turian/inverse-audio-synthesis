@@ -60,7 +60,7 @@ class VicregAudioParams(pl.LightningModule):
             nparams=cfg.nparams,
             dim=cfg.dim,
             hidden_norm=cfg.param_embed.hidden_norm,
-            dropout=cfg.param_embed.dropout,
+            dropout=cfg.dropout,
         )
 
         self.audio_repr = AudioEmbedding(

@@ -17,6 +17,8 @@ log: wand
 #dim: 512
 dim: 256
 
+dropout: 0.3
+
 # Number of torchsynth voice params
 nparams: 78
 
@@ -39,7 +41,6 @@ param_embed:
     hidden_norm: nn.BatchNorm1d
     #hidden_norm: nn.Identity
     # Used in heareval
-    dropout: 0.1
 
 
 #mel:

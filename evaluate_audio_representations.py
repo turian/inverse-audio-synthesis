@@ -184,10 +184,6 @@ import matplotlib.pyplot
 # mrstft = auraloss.freq.MultiResolutionSTFTLoss()
 
 
-# +
-# TODO: Remove dropout from downstream
-# -
-
 # !pip3 install --upgrade soundfile
 
 # +

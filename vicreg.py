@@ -25,7 +25,7 @@ class VICReg(nn.Module):
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )
-        self.projector = Projector(cfg, self.embedding)
+        self.projector = Projector(cfg, self.embedding, cfg.dropout)
 
     def forward(self, audio, params):
         x = self.projector(self.backbone_audio(audio))
@@ -56,13 +56,14 @@ class VICReg(nn.Module):
         return loss, repr_loss, std_loss, cov_loss
 
 
-def Projector(cfg, embedding):
+def Projector(cfg, embedding, dropout):
     mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.dim
     layers = []
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):
         layers.append(nn.Linear(f[i], f[i + 1]))
         layers.append(nn.BatchNorm1d(f[i + 1]))
+        layers.append(nn.Dropout(dropout))
         layers.append(nn.ReLU(True))
     layers.append(nn.Linear(f[-2], f[-1], bias=False))
     return nn.Sequential(*layers)

@@ -188,7 +188,7 @@ class AudioToParams(pl.LightningModule):
             nparams=cfg.nparams,
             dim=cfg.dim,
             hidden_norm=cfg.audio_to_params.hidden_norm,
-            dropout=cfg.audio_to_params.dropout,
+            dropout=cfg.dropout,
         )
 
         # We need a new one of these every time we change the batch size,
