@@ -2,6 +2,7 @@
 
 import hydra
 import numpy as np
+import torch
 
 # import torch.distributed as dist
 import torchaudio
@@ -53,8 +54,8 @@ def app(cfg: DictConfig) -> None:
     ) = runsetup(cfg)
 
     vicreg = VicregAudioParams(cfg)
-    if cfg.log == "wand":
-        plot_filter_range(vicreg, logger)
+#    if cfg.log == "wand":
+#        plot_filter_range(vicreg, logger)
 
     vicreg_model_checkpoint = ModelCheckpoint(
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
@@ -74,6 +75,10 @@ def app(cfg: DictConfig) -> None:
         strategy=cfg.strategy,
         devices=cfg.devices,
         deterministic=True,
+        check_val_every_n_epoch=None,
+        # TODO: config
+        val_check_interval=cfg.vicreg.val_check_interval,
+        limit_val_batches=cfg.vicreg.limit_val_batches,
         callbacks=[vicreg_model_checkpoint],
         # callbacks = [vicreg_model_checkpoint, ORTCallback()],
         # Doesn't work with our CUDA version :(
@@ -85,6 +90,7 @@ def app(cfg: DictConfig) -> None:
     vicreg_trainer.fit(
         vicreg,  # vicreg_scaler, vicreg_optimizer,
         train_dataloaders=train_batch_num_dataloader,
+        val_dataloaders=val_batch_num_dataloader,
     )
 
     if cfg.log == "wand":
