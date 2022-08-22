@@ -63,11 +63,11 @@ def Projector(cfg, embedding):
     for i in range(len(f) - 2):
         layers.append(nn.Linear(f[i], f[i + 1]))
         # BUG: Maybe don't want relu for the first layer :\
-        nn.init.xavier_normal_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
+        nn.init.xavier_uniform_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
         layers.append(nn.BatchNorm1d(f[i + 1]))
         layers.append(nn.ReLU(True))
     layers.append(nn.Linear(f[-2], f[-1], bias=False))
-    nn.init.xavier_normal_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
+    nn.init.xavier_uniform_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
     return nn.Sequential(*layers)
 
 
