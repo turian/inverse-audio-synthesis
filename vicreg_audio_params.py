@@ -88,7 +88,7 @@ class VicregAudioParams(pl.LightningModule):
         # BUG: Why???????
         self.voice.to(self.device)
 
-    def training_step(self, batch, batch_idx):
+    def _step(self, name, batch, batch_idx):
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
         voice_batch_num = batch.detach().cpu().numpy()
@@ -102,12 +102,17 @@ class VicregAudioParams(pl.LightningModule):
         vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
             audio=audio, params=params
         )
-        self.log("vicreg/loss", vicreg_loss)
-        self.log("vicreg/repr_loss", repr_loss)
-        self.log("vicreg/std_loss", std_loss)
-        self.log("vicreg/cov_loss", cov_loss)
+        self.log(f"vicreg/{name}/loss", vicreg_loss, sync_dist=True)
+        self.log(f"vicreg/{name}/repr_loss", repr_loss, sync_dist=True)
+        self.log(f"vicreg/{name}/std_loss", std_loss, sync_dist=True)
+        self.log(f"vicreg/{name}/cov_loss", cov_loss, sync_dist=True)
 
         return vicreg_loss
+
+    def training_step(self, batch, batch_idx):
+        return self._step("train", batch, batch_idx)
+    def validation_step(self, batch, batch_idx):
+        return self._step("validation", batch, batch_idx)
 
     def configure_optimizers(self):
         if self.cfg.vicreg.optim.name == "sgd":
