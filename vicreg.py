@@ -18,13 +18,13 @@ class VICReg(nn.Module):
         super().__init__()
         self.cfg = cfg
         self.num_features = cfg.dim
-        #        self.backbone = nn.Identity()
+        # self.backbone = nn.Identity()
         self.backbone_audio = backbone_audio
         self.backbone_param = backbone_param
         self.embedding = cfg.dim
-        #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
+        # self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
-        #        )
+        # )
         self.projector = Projector(cfg, self.embedding)
 
     def forward(self, audio, params):
@@ -62,9 +62,12 @@ def Projector(cfg, embedding):
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):
         layers.append(nn.Linear(f[i], f[i + 1]))
+        # BUG: Maybe don't want relu for the first layer :\
+        nn.init.xavier_normal_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
         layers.append(nn.BatchNorm1d(f[i + 1]))
         layers.append(nn.ReLU(True))
     layers.append(nn.Linear(f[-2], f[-1], bias=False))
+    nn.init.xavier_normal_(layers[-1].weight, gain=nn.init.calculate_gain("relu"))
     return nn.Sequential(*layers)
 
 
