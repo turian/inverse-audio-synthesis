@@ -17,6 +17,8 @@ log: wand
 #dim: 512
 dim: 256
 
+embed_dim: 8192
+
 # Number of torchsynth voice params
 nparams: 78
 

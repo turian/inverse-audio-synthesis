@@ -17,8 +17,8 @@ val_check_interval: 1024
 limit_val_batches: 128
 
 # Otherwise this will be the biggest module in vicreg
-mlp: "256-256-%d"
-#mlp: "1024-1024-%d"
+#mlp: "256-256-%d"
+mlp: "1024-1024-%d"
 
 sim_coeff: 25.0
 std_coeff: 25.0

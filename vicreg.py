@@ -17,7 +17,7 @@ class VICReg(nn.Module):
     ):
         super().__init__()
         self.cfg = cfg
-        self.num_features = cfg.dim
+        self.num_features = cfg.embed_dim
         #        self.backbone = nn.Identity()
         self.backbone_audio = backbone_audio
         self.backbone_param = backbone_param
@@ -57,7 +57,7 @@ class VICReg(nn.Module):
 
 
 def Projector(cfg, embedding):
-    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.dim
+    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.embed_dim
     layers = []
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):
