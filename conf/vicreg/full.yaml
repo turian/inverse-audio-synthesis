@@ -26,7 +26,8 @@ cov_coeff: 1.0
 optim:
   name: "sgd"
   args:
-   lr: 0.01
+   lr: 0.032
+#   lr: 0.01
 #  name: "lars"
 #  args:
 #    base_lr: 2.0
