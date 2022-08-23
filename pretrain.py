@@ -78,6 +78,7 @@ def app(cfg: DictConfig) -> None:
         # TODO: config
         val_check_interval=cfg.vicreg.val_check_interval,
         limit_val_batches=cfg.vicreg.limit_val_batches,
+#        log_every_n_steps=1,
         callbacks=[vicreg_model_checkpoint, LearningRateMonitor()],
         # Doesn't work with our CUDA version :(
         # https://github.com/Lightning-AI/lightning-bolts

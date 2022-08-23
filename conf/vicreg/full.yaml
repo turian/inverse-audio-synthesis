@@ -9,8 +9,8 @@ batch_size: 1024
 
 # Each checkpoint is around 1GB so
 # too frequent it wandb will be costly.
-checkpoint_every_nbatches: 100000
-#checkpoint_every_nbatches: 1000
+#checkpoint_every_nbatches: 100000
+checkpoint_every_nbatches: 10000
 #checkpoint_every_nbatches: 10
 
 val_check_interval: 1024
@@ -31,22 +31,19 @@ optim:
 ##   lr: 0.01
   name: "lars"
   args:
-    base_lr: 200.0
+    base_lr: 0.32
     weight_decay: 1e-6
     # In LARS we use base_lr instead
     lr: null
 scheduler:
-  name: "LinearWarmupCosineAnnealingLRSlowStart"
+  name: "LinearWarmupCosineAnnealingLR"
   args:
+    # Try 10k later?
+    warmup_epochs: 1000
     # ImageNet has 1281167 images and our batch size is 1024,
-    # so our "epoch" is 1251 steps.
-    # NB VICreg warms up for 10 epochs to 1/10th the LR :\
-#    warmup_epochs: 1251
-#    max_epochs: 2502
-    warmup_epochs: 10000
-    max_epochs: 10000
+    # so our "epoch" is ~1251 steps. (+ warmup_epochs)
+    max_epochs: 22510
     # Learning rate to start the linear warmup.
     warmup_start_lr: 0.0
-    warmup_end_lr_factor: 0.1
     # Minimum learning rate.
     eta_min: 0.0
