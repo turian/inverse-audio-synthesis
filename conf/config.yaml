@@ -16,7 +16,8 @@ log: wand
 
 # Hidden and representation dimension
 #dim: 512
-dim: 256
+#dim: 256
+dim: 1024
 # Embedding (projection) dimension.
 # According to VICReg paper, bigger is better.
 # This leads to lower representation loss.
