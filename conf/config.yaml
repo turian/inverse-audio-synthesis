@@ -44,7 +44,7 @@ param_embed:
     hidden_norm: nn.BatchNorm1d
     #hidden_norm: nn.Identity
     # Used in heareval
-    dropout: 0.1
+    dropout: 0.0
 
 
 #mel:

@@ -5,9 +5,9 @@ batch_size: 1024
 hidden_norm: nn.BatchNorm1d
 #hidden_norm: nn.Identity
 # Used in heareval
-dropout: 0.1
+dropout: 0.0
 
-checkpoint_every_nbatches: 100
+checkpoint_every_nbatches: 1000
 #checkpoint_every_nbatches: 10
 
 # limit_train_batches: null
