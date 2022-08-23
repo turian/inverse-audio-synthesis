@@ -25,13 +25,25 @@ cov_coeff: 1.0
 pretrained_vision_model: True
 
 optim:
-  name: "sgd"
-  args:
-   lr: 0.032
-#   lr: 0.01
-#  name: "lars"
+#  name: "sgd"
 #  args:
-#    base_lr: 2.0
-#    weight_decay: 1e-6
-#    # In LARS we use base_lr instead
-#    lr: null
+#   lr: 0.032
+##   lr: 0.01
+  name: "lars"
+  args:
+    base_lr: 2.0
+    weight_decay: 1e-6
+    # In LARS we use base_lr instead
+    lr: null
+scheduler:
+  name: "LinearWarmupCosineAnnealingLR"
+  args:
+    # ImageNet has 1281167 images and our batch size is 1024,
+    # so our "epoch" is 1251 steps.
+    # NB VICreg warms up for 10 epochs to 1/10th the LR :\
+    warmup_epochs: 1251
+    max_epochs: 1251
+    # Learning rate to start the linear warmup.
+    warmup_start_lr: 0.0
+    # Minimum learning rate.
+    eta_min: 0.0

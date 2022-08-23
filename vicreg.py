@@ -44,9 +44,9 @@ class VICReg(nn.Module):
 
         cov_x = (x.T @ x) / (self.cfg.vicreg.batch_size - 1)
         cov_y = (y.T @ y) / (self.cfg.vicreg.batch_size - 1)
-        cov_loss = off_diagonal(cov_x).pow_(2).sum().div(
-            self.embeddim
-        ) + off_diagonal(cov_y).pow_(2).sum().div(self.embeddim)
+        cov_loss = off_diagonal(cov_x).pow_(2).sum().div(self.embeddim) + off_diagonal(
+            cov_y
+        ).pow_(2).sum().div(self.embeddim)
 
         loss = (
             self.cfg.vicreg.sim_coeff * repr_loss
