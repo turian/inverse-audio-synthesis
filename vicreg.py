@@ -17,15 +17,15 @@ class VICReg(nn.Module):
     ):
         super().__init__()
         self.cfg = cfg
-        self.num_features = cfg.dim
+        self.reprdim = cfg.dim
+        self.embeddim = cfg.embeddim
         #        self.backbone = nn.Identity()
         self.backbone_audio = backbone_audio
         self.backbone_param = backbone_param
-        self.embedding = cfg.reprdim
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )
-        self.projector = Projector(cfg, self.embedding)
+        self.projector = Projector(cfg, self.reprdim)
 
     def forward(self, audio, params):
         x = self.projector(self.backbone_audio(audio))
@@ -45,8 +45,8 @@ class VICReg(nn.Module):
         cov_x = (x.T @ x) / (self.cfg.vicreg.batch_size - 1)
         cov_y = (y.T @ y) / (self.cfg.vicreg.batch_size - 1)
         cov_loss = off_diagonal(cov_x).pow_(2).sum().div(
-            self.num_features
-        ) + off_diagonal(cov_y).pow_(2).sum().div(self.num_features)
+            self.embeddim
+        ) + off_diagonal(cov_y).pow_(2).sum().div(self.embeddim)
 
         loss = (
             self.cfg.vicreg.sim_coeff * repr_loss
@@ -56,8 +56,8 @@ class VICReg(nn.Module):
         return loss, repr_loss, std_loss, cov_loss
 
 
-def Projector(cfg, embedding):
-    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.reprdim
+def Projector(cfg, reprdim):
+    mlp_spec = f"{reprdim}-{cfg.vicreg.mlp}" % cfg.embeddim
     layers = []
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):

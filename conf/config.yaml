@@ -21,7 +21,7 @@ dim: 1024
 # Embedding (projection) dimension.
 # According to VICReg paper, bigger is better.
 # This leads to lower representation loss.
-reprdim: 8192
+embeddim: 8192
 
 # Number of torchsynth voice params
 nparams: 78
