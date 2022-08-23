@@ -14,8 +14,13 @@ num_workers: 1
 log: wand
 #log: null
 
+# Hidden and representation dimension
 #dim: 512
 dim: 256
+# Embedding (projection) dimension.
+# According to VICReg paper, bigger is better.
+# This leads to lower representation loss.
+reprdim: 8192
 
 # Number of torchsynth voice params
 nparams: 78

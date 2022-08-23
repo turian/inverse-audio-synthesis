@@ -21,7 +21,7 @@ class VICReg(nn.Module):
         #        self.backbone = nn.Identity()
         self.backbone_audio = backbone_audio
         self.backbone_param = backbone_param
-        self.embedding = cfg.dim
+        self.embedding = cfg.reprdim
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
         #            zero_init_residual=True
         #        )
@@ -57,7 +57,7 @@ class VICReg(nn.Module):
 
 
 def Projector(cfg, embedding):
-    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.dim
+    mlp_spec = f"{embedding}-{cfg.vicreg.mlp}" % cfg.reprdim
     layers = []
     f = list(map(int, mlp_spec.split("-")))
     for i in range(len(f) - 2):
