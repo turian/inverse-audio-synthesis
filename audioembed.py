@@ -33,8 +33,7 @@ class AudioEmbedding(nn.Module):
             in_channels=self.dim, out_channels=self.dim, kernel_size=2
         )
 
-        # Mel has 1024 dim output :\
-        self.lin = nn.Linear(1024, self.dim)
+        self.lin = nn.Linear(self.dim * 4, self.dim)
 
     def _preprocess(self, audio):
         x = audio
