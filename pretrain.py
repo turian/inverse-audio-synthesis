@@ -10,16 +10,15 @@ import torchaudio.transforms
 from omegaconf import DictConfig
 from pynvml import *
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
-from vicreg_audio_params import VicregAudioParams
-
 import wandb
 from runsetup import runsetup
+from vicreg_audio_params import VicregAudioParams
 
 
 def plot_filter_range(vicreg, logger):
@@ -54,8 +53,8 @@ def app(cfg: DictConfig) -> None:
     ) = runsetup(cfg)
 
     vicreg = VicregAudioParams(cfg)
-#    if cfg.log == "wand":
-#        plot_filter_range(vicreg, logger)
+    #    if cfg.log == "wand":
+    #        plot_filter_range(vicreg, logger)
 
     vicreg_model_checkpoint = ModelCheckpoint(
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
@@ -79,11 +78,11 @@ def app(cfg: DictConfig) -> None:
         # TODO: config
         val_check_interval=cfg.vicreg.val_check_interval,
         limit_val_batches=cfg.vicreg.limit_val_batches,
-        callbacks=[vicreg_model_checkpoint],
-        # callbacks = [vicreg_model_checkpoint, ORTCallback()],
+#        log_every_n_steps=1,
+        callbacks=[vicreg_model_checkpoint, LearningRateMonitor()],
         # Doesn't work with our CUDA version :(
         # https://github.com/Lightning-AI/lightning-bolts
-        # callbacks = ORTCallback(),
+        # callbacks = [vicreg_model_checkpoint, ORTCallback(), LearningRateMonitor()],
     )
     #        from copy import deepcopy
     #        deepcopy(vicreg_trainer.callback_metrics)

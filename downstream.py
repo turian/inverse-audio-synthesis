@@ -46,7 +46,7 @@ def app(cfg: DictConfig) -> None:
         strategy=cfg.strategy,
         devices=cfg.devices,
         deterministic=True,
-# TODO: Other stuff from pretrain Trainer??
+        # TODO: Other stuff from pretrain Trainer??
         callbacks=[audio_to_params_model_checkpoint],
         # callbacks = [audio_to_params_model_checkpoint, ORTCallback()],
         # Doesn't work with our CUDA version :(

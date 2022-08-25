@@ -13,7 +13,9 @@ class AudioEmbedding(nn.Module):
         # 576 = number of channels in efficientnet
         # 64 just because this is one of the biggest modules in the whole vicreg :(
         self.conv7 = nn.Conv2d(in_channels=576, out_channels=self.dim, kernel_size=2)
-        self.conv6 = nn.Conv2d(in_channels=self.dim, out_channels=self.dim, kernel_size=2)
+        self.conv6 = nn.Conv2d(
+            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        )
         self.conv5 = nn.Conv2d(
             in_channels=self.dim, out_channels=self.dim, kernel_size=2
         )
