@@ -14,8 +14,14 @@ num_workers: 1
 log: wand
 #log: null
 
+# Hidden and representation dimension
 #dim: 512
-dim: 256
+#dim: 256
+dim: 1024
+# Embedding (projection) dimension.
+# According to VICReg paper, bigger is better.
+# This leads to lower representation loss.
+embeddim: 8192
 
 # Number of torchsynth voice params
 nparams: 78
@@ -39,7 +45,7 @@ param_embed:
     hidden_norm: nn.BatchNorm1d
     #hidden_norm: nn.Identity
     # Used in heareval
-    dropout: 0.1
+    dropout: 0.0
 
 
 #mel:
