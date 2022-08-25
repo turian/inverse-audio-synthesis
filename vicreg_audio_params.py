@@ -1,3 +1,6 @@
+import math
+from typing import List
+
 import flash.core
 import numpy as np
 import pytorch_lightning as pl
@@ -9,6 +12,9 @@ import torch.optim as optim
 import torchaudio
 import torchvision
 from omegaconf import DictConfig
+from torch.optim import Optimizer
+
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
@@ -114,19 +120,15 @@ class VicregAudioParams(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         return self._step("train", batch, batch_idx)
+
     def validation_step(self, batch, batch_idx):
         return self._step("validation", batch, batch_idx)
 
     def configure_optimizers(self):
         if self.cfg.vicreg.optim.name == "sgd":
-            return optim.SGD(self.parameters(), lr=self.cfg.vicreg.optim.args.lr)
+            optim = optim.SGD(self.parameters(), lr=self.cfg.vicreg.optim.args.lr)
         elif self.cfg.vicreg.optim.name == "lars":
-            # TODO: Add cosine scheduler?
-            # https://arxiv.org/pdf/2105.04906.pdf
-            # Section 4.2: "The learning rate follows a cosine decay
-            # schedule Loshchilov & Hutter (2017), starting from 0 with
-            # 10 warmup epochs and with final value of 0.002."
-            return flash.core.optimizers.LARS(
+            optim = flash.core.optimizers.LARS(
                 self.parameters(),
                 weight_decay=self.cfg.vicreg.optim.args.weight_decay,
                 # https://arxiv.org/pdf/2105.04906.pdf
@@ -137,3 +139,24 @@ class VicregAudioParams(pl.LightningModule):
             )
         else:
             assert False
+        # TODO: VICReg and others actually warm-up to 1/2000th the max LR
+        # in the first 10 epochs :\
+        # Not linear warmup to the actual LR max
+        if self.cfg.vicreg.scheduler.name == "LinearWarmupCosineAnnealingLR":
+            scheduler = LinearWarmupCosineAnnealingLR(
+                optimizer=optim, **self.cfg.vicreg.scheduler.args
+            )
+        else:
+            assert False
+        return {
+            "optimizer": optim,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                # Updates after a optimizer update
+                "interval": "step",
+                # How many steps should pass between calls to
+                # `scheduler.step()`. 1 corresponds to updating the learning
+                # rate after every step.
+                "frequency": 1,
+            },
+        }
