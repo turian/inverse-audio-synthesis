@@ -1,7 +1,6 @@
 import os.path
 
 import torch
-
 from omegaconf import DictConfig, OmegaConf
 from pynvml import *
 from pytorch_lightning import seed_everything
