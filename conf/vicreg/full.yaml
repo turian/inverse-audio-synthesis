@@ -9,7 +9,7 @@ batch_size: 1024
 
 # Each checkpoint is around 1GB so
 # too frequent it wandb will be costly.
-checkpoint_every_nbatches: 100000
+checkpoint_every_nbatches: 1000000
 #checkpoint_every_nbatches: 1000
 #checkpoint_every_nbatches: 10
 
