@@ -52,7 +52,7 @@ class VicregAudioParams(pl.LightningModule):
             freq_scale="log",
             center=True,
             pad_mode="reflect",
-            fmin=0.0,
+            fmin=30.0,
             fmax=cfg.torchsynth.rate / 2,
             trainable=False,
             output_format="Magnitude",
