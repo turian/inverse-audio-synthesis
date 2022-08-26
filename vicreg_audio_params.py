@@ -45,7 +45,7 @@ class VicregAudioParams(pl.LightningModule):
         # TODO: in crt
         self.gram = features.STFT(
             sr=cfg.torchsynth.rate,
-            n_fft=2048,
+            n_fft=4096,
             freq_bins=256,
             hop_length=512,
             window="hann",
