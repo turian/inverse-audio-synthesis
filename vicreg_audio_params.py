@@ -43,21 +43,26 @@ class VicregAudioParams(pl.LightningModule):
         # TODO: Make these params
         #        self.gram = features.MelSpectrogram(sr=cfg.torchsynth.rate, n_fft=2048, n_mels=256, hop_length=512, window='hann', center=True, pad_mode='reflect', power=2.0, htk=False, fmin=0.0, fmax=None, norm=1, trainable_mel=False, trainable_STFT=False, verbose=True)
         # TODO: in crt
-        self.gram = features.STFT(
-            sr=cfg.torchsynth.rate,
-            n_fft=4096,
-            freq_bins=256,
-            hop_length=512,
-            window="hann",
-            freq_scale="log",
-            center=True,
-            pad_mode="reflect",
-            fmin=30.0,
-            fmax=cfg.torchsynth.rate / 2,
-            trainable=False,
-            output_format="Magnitude",
-            verbose=True,
-        )
+        self.grams = []
+        #        for n_fft in [4096, 2048, 1024, 512, 256, 128]:
+        for n_fft in [4096, 2048, 1024, 512, 256]:
+            self.grams.append(
+                features.STFT(
+                    sr=cfg.torchsynth.rate,
+                    n_fft=n_fft,
+                    freq_bins=256,
+                    hop_length=n_fft // 4,
+                    window="hann",
+                    freq_scale="log",
+                    center=True,
+                    pad_mode="reflect",
+                    fmin=30.0,
+                    fmax=cfg.torchsynth.rate / 2,
+                    trainable=False,
+                    output_format="Magnitude",
+                    verbose=True,
+                )
+            )
 
         # New weights with accuracy 80.858%
         # https://pytorch.org/vision/stable/models.html
@@ -89,7 +94,7 @@ class VicregAudioParams(pl.LightningModule):
         )
 
         self.audio_repr = AudioEmbedding(
-            self.gram,
+            self.grams,
             self.vision_model,
             img_preprocess=self.img_preprocess,
             dim=cfg.dim,

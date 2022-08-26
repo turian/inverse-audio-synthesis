@@ -4,9 +4,9 @@ import torch
 
 
 class AudioEmbedding(nn.Module):
-    def __init__(self, gram, vision_model, img_preprocess, dim):
+    def __init__(self, grams, vision_model, img_preprocess, dim):
         super().__init__()
-        self.gram = gram
+        self.grams = nn.ModuleList(grams)
         self.vision_model = vision_model
         self.img_preprocess = img_preprocess
         self.dim = dim
@@ -15,27 +15,15 @@ class AudioEmbedding(nn.Module):
 
         # 576 = number of channels in efficientnet
         # 64 just because this is one of the biggest modules in the whole vicreg :(
-        self.conv7 = nn.Conv2d(in_channels=576, out_channels=self.dim, kernel_size=2)
-        self.conv6 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv5 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv4 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv3 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv2 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv1 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        self.conv0 = nn.Conv2d(in_channels=576, out_channels=self.dim, kernel_size=2)
+        self.convs = nn.ModuleList(
+            [
+                nn.Conv2d(in_channels=self.dim, out_channels=self.dim, kernel_size=2)
+                for i in range(30)
+            ]
         )
 
-        self.lin = nn.Linear(self.dim * 4, self.dim)
+        self.lin = nn.Linear(self.dim * 11, self.dim)
 
     def _preprocess(self, audio):
         x = audio
@@ -44,10 +32,17 @@ class AudioEmbedding(nn.Module):
         #        z = self.gram(audio)
 
         # Three channels of mel in different ways
-        zlin = self.gram(audio)
-        zlog1 = torch.log(zlin + 1e-6)
-        zlog2 = torch.log10(zlin + 1e-2)
-        z = torch.stack([zlin, zlog1, zlog2]).permute(1, 0, 2, 3)
+        zs = []
+        for gram in self.grams:
+            zlin = gram(audio)
+            zlog1 = torch.log(zlin + 1e-6)
+            zlog2 = torch.log10(zlin + 1e-2)
+            z = torch.stack([zlin, zlog1, zlog2]).permute(1, 0, 2, 3)
+            zs.append(z)
+
+        z = torch.cat(zs, dim=3).contiguous()
+        # I don't know if this is right :\
+        z = z.view(z.shape[0], z.shape[1], 1024, 1336)
 
         z = self.batchnorm(z)
 
@@ -75,13 +70,9 @@ class AudioEmbedding(nn.Module):
         # So we just keep convolving it down to self.dim
         # This gives us a 4 second (or so) receptive field
         t = self.vision_model.features(self._preprocess(audio))
-        t = self.conv7(t)
-        t = self.conv6(t)
-        t = self.conv5(t)
-        t = self.conv4(t)
-        t = self.conv3(t)
-        t = self.conv2(t)
-        t = self.conv1(t)
+        t = self.conv0(t)
+        for conv in self.convs:
+            t = conv(t)
         t = t.view(audio.shape[0], -1)
         t = self.lin(t)
         return t
