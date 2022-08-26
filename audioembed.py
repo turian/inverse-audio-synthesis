@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch import Tensor
 import torch
+import torch.nn.functional as F
 
 
 class AudioEmbedding(nn.Module):
@@ -19,11 +20,11 @@ class AudioEmbedding(nn.Module):
         self.convs = nn.ModuleList(
             [
                 nn.Conv2d(in_channels=self.dim, out_channels=self.dim, kernel_size=2)
-                for i in range(30)
+                for i in range(23)
             ]
         )
 
-        self.lin = nn.Linear(self.dim * 11, self.dim)
+#        self.lin = nn.Linear(self.dim * 11, self.dim)
 
     def _preprocess(self, audio):
         x = audio
@@ -38,11 +39,16 @@ class AudioEmbedding(nn.Module):
             zlog1 = torch.log(zlin + 1e-6)
             zlog2 = torch.log10(zlin + 1e-2)
             z = torch.stack([zlin, zlog1, zlog2]).permute(1, 0, 2, 3)
+
+            target_dim = 1024 * 125 // z.shape[2]
+            assert target_dim >= z.shape[3]
+            if target_dim >= z.shape[3]:
+                z = F.pad(z, (0, target_dim - z.shape[3]))
+            # I don't know if this is right :\
+            z = z.view(z.shape[0], z.shape[1], 800, -1)
             zs.append(z)
 
         z = torch.cat(zs, dim=3).contiguous()
-        # I don't know if this is right :\
-        z = z.view(z.shape[0], z.shape[1], 1024, 1336)
 
         z = self.batchnorm(z)
 
@@ -71,10 +77,10 @@ class AudioEmbedding(nn.Module):
         # This gives us a 4 second (or so) receptive field
         t = self.vision_model.features(self._preprocess(audio))
         t = self.conv0(t)
-        for conv in self.convs:
+        for i, conv in enumerate(self.convs):
             t = conv(t)
         t = t.view(audio.shape[0], -1)
-        t = self.lin(t)
+#        t = self.lin(t)
         return t
 
     def features(self, audio):

@@ -45,12 +45,17 @@ class VicregAudioParams(pl.LightningModule):
         # TODO: in crt
         self.grams = []
         #        for n_fft in [4096, 2048, 1024, 512, 256, 128]:
-        for n_fft in [4096, 2048, 1024, 512, 256]:
+        for n_fft, freq_bins in [(5648, 1024), (2824, 512), (1412, 256), (708, 128), (356, 64)]:
+#        for n_fft, freq_bins in [(5648, 1024), (2824, 512), (1412, 256), (710, 128), (360, 64)]:
+#        base = 360
+#        for i in range(5):
+#            n_fft = base * (2 ** i)
+#            freq_bins = 64 * (2 ** i)
             self.grams.append(
                 features.STFT(
                     sr=cfg.torchsynth.rate,
                     n_fft=n_fft,
-                    freq_bins=256,
+                    freq_bins=freq_bins,
                     hop_length=n_fft // 4,
                     window="hann",
                     freq_scale="log",
