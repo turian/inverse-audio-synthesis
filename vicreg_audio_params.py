@@ -5,16 +5,17 @@ import flash.core
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
 import torchvision
+from nnAudio import features
 from omegaconf import DictConfig
-from torch.optim import Optimizer
-
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from torch.optim import Optimizer
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
@@ -28,8 +29,22 @@ import wandb
 from audioembed import AudioEmbedding
 from paramembed import ParamEmbed
 from pqmf import PQMF
-from nnAudio import features
 from vicreg import VICReg
+
+
+class CombineAudioEmbedding(nn.Module):
+    def __init__(self, dim, reprs) -> None:
+        super().__init__()
+
+        self.reprs= nn.ModuleList(reprs)
+        self.dim = dim
+        self.lin = nn.Linear(len(reprs) * dim, dim)
+
+    def forward(self, x):
+        x = torch.stack([thisrepr(x) for _, thisrepr in enumerate(self.reprs)], dim=1)
+        x = x.view(x.shape[0], -1)
+        x = self.lin(x)
+        return x
 
 
 class VicregAudioParams(pl.LightningModule):
@@ -37,27 +52,6 @@ class VicregAudioParams(pl.LightningModule):
         super().__init__()
 
         self.cfg = cfg
-
-        # Use 3 channels for RGB image (not 4 which is PQMF default)
-        # self.gram = PQMF(N=3)
-        # TODO: Make these params
-        #        self.gram = features.MelSpectrogram(sr=cfg.torchsynth.rate, n_fft=2048, n_mels=256, hop_length=512, window='hann', center=True, pad_mode='reflect', power=2.0, htk=False, fmin=0.0, fmax=None, norm=1, trainable_mel=False, trainable_STFT=False, verbose=True)
-        # TODO: in crt
-        self.gram = features.STFT(
-            sr=cfg.torchsynth.rate,
-            n_fft=2048,
-            freq_bins=256,
-            hop_length=512,
-            window="hann",
-            freq_scale="log",
-            center=True,
-            pad_mode="reflect",
-            fmin=30.0,
-            fmax=cfg.torchsynth.rate / 2,
-            trainable=False,
-            output_format="Magnitude",
-            verbose=True,
-        )
 
         # New weights with accuracy 80.858%
         # https://pytorch.org/vision/stable/models.html
@@ -81,18 +75,44 @@ class VicregAudioParams(pl.LightningModule):
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
         )
 
+        # Use 3 channels for RGB image (not 4 which is PQMF default)
+        # self.gram = PQMF(N=3)
+        # TODO: Make these params
+        #        self.gram = features.MelSpectrogram(sr=cfg.torchsynth.rate, n_fft=2048, n_mels=256, hop_length=512, window='hann', center=True, pad_mode='reflect', power=2.0, htk=False, fmin=0.0, fmax=None, norm=1, trainable_mel=False, trainable_STFT=False, verbose=True)
+        # TODO: in crt
+        self.audio_reprs = nn.ModuleList()
+        for n_fft in [1024, 2048, 4096]:
+            self.gram = features.STFT(
+                sr=cfg.torchsynth.rate,
+                n_fft=2048,
+                freq_bins=256,
+                hop_length=512,
+                window="hann",
+                freq_scale="log",
+                center=True,
+                pad_mode="reflect",
+                fmin=30.0,
+                fmax=cfg.torchsynth.rate / 2,
+                trainable=False,
+                output_format="Magnitude",
+                verbose=True,
+            )
+
+            self.audio_reprs.append(
+                AudioEmbedding(
+                    self.gram,
+                    self.vision_model,
+                    img_preprocess=self.img_preprocess,
+                    dim=cfg.dim,
+                )
+            )
+        self.audio_repr = CombineAudioEmbedding(cfg.dim, self.audio_reprs)
+
         self.paramembed = ParamEmbed(
             nparams=cfg.nparams,
             dim=cfg.dim,
             hidden_norm=cfg.param_embed.hidden_norm,
             dropout=cfg.param_embed.dropout,
-        )
-
-        self.audio_repr = AudioEmbedding(
-            self.gram,
-            self.vision_model,
-            img_preprocess=self.img_preprocess,
-            dim=cfg.dim,
         )
 
         # TODO: Swap order of these everywhere?
