@@ -60,8 +60,11 @@ def app(cfg: DictConfig) -> None:
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
         #            dirpath="chkpts/",
         filename="vicreg-{epoch:02d}-{step:04d}",
-        monitor=None,
+        # monitor=None,
+        monitor="vicreg/train/loss",
         save_last=True,
+        auto_insert_metric_name=True,
+        verbose=True,
     )
     # TODO: Remove limit_train_batches
     vicreg_trainer = Trainer(
@@ -78,7 +81,7 @@ def app(cfg: DictConfig) -> None:
         # TODO: config
         val_check_interval=cfg.vicreg.val_check_interval,
         limit_val_batches=cfg.vicreg.limit_val_batches,
-#        log_every_n_steps=1,
+        #        log_every_n_steps=1,
         callbacks=[vicreg_model_checkpoint, LearningRateMonitor()],
         # Doesn't work with our CUDA version :(
         # https://github.com/Lightning-AI/lightning-bolts
