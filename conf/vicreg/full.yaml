@@ -13,8 +13,8 @@ batch_size: 128
 # too frequent it wandb will be costly.
 # FYI: This batch number isn't steps :\
 # It's some weird artifical number
-checkpoint_every_nbatches: 1000000
-#checkpoint_every_nbatches: 10000
+#checkpoint_every_nbatches: 100000
+checkpoint_every_nbatches: 10000
 #checkpoint_every_nbatches: 10
 
 val_check_interval: 1024
