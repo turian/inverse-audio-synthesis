@@ -76,7 +76,9 @@ def app(cfg: DictConfig) -> None:
         accelerator=cfg.accelerator,
         strategy=cfg.strategy,
         devices=cfg.devices,
-        deterministic=True,
+        deterministic=False,    # Can't use with benchmark=True
+        benchmark=True,
+        sync_batchnorm=True,
         check_val_every_n_epoch=None,
         # TODO: config
         val_check_interval=cfg.vicreg.val_check_interval,
