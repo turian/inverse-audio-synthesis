@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import torch.distributed as dist
+
 from full_gather_layer import FullGatherLayer
 
 class VICReg(nn.Module):
@@ -37,9 +39,11 @@ class VICReg(nn.Module):
         x = torch.cat(FullGatherLayer.apply(x), dim=0)
         y = torch.cat(FullGatherLayer.apply(y), dim=0)
 
-        assert x.shape[0] == self.cfg.vicreg.batch_size * self.world_size
-        assert y.shape[0] == self.cfg.vicreg.batch_size * self.world_size
-        world_batch_size = self.cfg.vicreg.batch_size * self.world_size
+        #world_size = self.world_size
+        world_size = dist.get_world_size()
+        assert x.shape[0] == self.cfg.vicreg.batch_size * world_size
+        assert y.shape[0] == self.cfg.vicreg.batch_size * world_size
+        world_batch_size = self.cfg.vicreg.batch_size * world_size
 
         x = x - x.mean(dim=0)
         y = y - y.mean(dim=0)
