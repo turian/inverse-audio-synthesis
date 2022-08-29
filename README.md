@@ -8,9 +8,9 @@ GPU batch syncing.
 
 * match 2d to 1d repr
 
-* add EMA
+* Automatically use all GPUs
 
-* Xavier weight initialization
+* add EMA
 
 * Make sure to use .train for training models and .eval for eval
 * More magic numbers in py files to config
