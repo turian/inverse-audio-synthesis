@@ -76,10 +76,10 @@ def app(cfg: DictConfig) -> None:
         accelerator=cfg.accelerator,
         strategy=cfg.strategy,
         devices=cfg.devices,
-        deterministic=False,    # Can't use with benchmark=True
+        deterministic=False,  # Can't use with benchmark=True
         benchmark=True,
         # BUG: Broken
-#        sync_batchnorm=True,
+        #        sync_batchnorm=True,
         sync_batchnorm=False,
         check_val_every_n_epoch=None,
         # TODO: config

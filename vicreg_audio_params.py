@@ -5,16 +5,17 @@ import flash.core
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 
 # import torch.distributed as dist
 import torch.optim as optim
 import torchaudio
 import torchvision
+from nnAudio import features
 from omegaconf import DictConfig
-from torch.optim import Optimizer
-
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from torch.optim import Optimizer
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
@@ -94,6 +95,47 @@ class VicregAudioParams(pl.LightningModule):
         # BUG: Why???????
         self.voice.to(self.device)
 
+    def forward(self, audio, params):
+        return self.vicreg(audio=audio, params=params)
+
+    def losses(self, audio, params):
+        x, y = self.forward(audio, params)
+
+        # BUG: Why isn't this AFTER the all_gather?
+        # (But that's how it's done in the original FB code)
+        repr_loss = F.mse_loss(x, y)
+
+        x = self.all_gather(x, sync_grads=True)
+        y = self.all_gather(y, sync_grads=True)
+        x = x.view(x.shape[0] * x.shape[1], x.shape[2])
+        y = y.view(y.shape[0] * y.shape[1], y.shape[2])
+
+        # world_size = self.world_size
+        world_size = dist.get_world_size()
+        assert x.shape[0] == self.cfg.vicreg.batch_size * world_size
+        assert y.shape[0] == self.cfg.vicreg.batch_size * world_size
+        world_batch_size = self.cfg.vicreg.batch_size * world_size
+
+        x = x - x.mean(dim=0)
+        y = y - y.mean(dim=0)
+
+        std_x = torch.sqrt(x.var(dim=0) + 0.0001)
+        std_y = torch.sqrt(y.var(dim=0) + 0.0001)
+        std_loss = torch.mean(F.relu(1 - std_x)) / 2 + torch.mean(F.relu(1 - std_y)) / 2
+
+        cov_x = (x.T @ x) / (world_batch_size - 1)
+        cov_y = (y.T @ y) / (world_batch_size - 1)
+        cov_loss = off_diagonal(cov_x).pow_(2).sum().div(self.vicreg.embeddim) + off_diagonal(
+            cov_y
+        ).pow_(2).sum().div(self.vicreg.embeddim)
+
+        loss = (
+            self.cfg.vicreg.sim_coeff * repr_loss
+            + self.cfg.vicreg.std_coeff * std_loss
+            + self.cfg.vicreg.cov_coeff * cov_loss
+        )
+        return loss, repr_loss, std_loss, cov_loss
+
     def _step(self, name, batch, batch_idx):
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
@@ -105,7 +147,7 @@ class VicregAudioParams(pl.LightningModule):
         audio = audio.unsqueeze(1)
         #  audio2 = apply_augmentation(audio)
 
-        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.losses(
             audio=audio, params=params
         )
         self.log(f"vicreg/{name}/loss", vicreg_loss, sync_dist=True)
@@ -157,3 +199,8 @@ class VicregAudioParams(pl.LightningModule):
                 "frequency": 1,
             },
         }
+
+def off_diagonal(x):
+    n, m = x.shape
+    assert n == m
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
