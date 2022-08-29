@@ -10,6 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
 
 import wandb
+from utils import git_sha
 
 
 def runsetup(cfg: DictConfig) -> None:
@@ -47,6 +48,10 @@ def runsetup(cfg: DictConfig) -> None:
     test_batch_num_dataloader = torch.utils.data.DataLoader(test_batch_num_dataset)
 
     if cfg.log == "wand":
+        cfg_dict = {"git_sha": git_sha}
+        cfg_dict.update(
+            OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+        )
         # if not os.path.exists("/tmp/turian-wandb/wandb/"):
         #   os.makedirs("/tmp/turian-wandb/wandb/", exist_ok=True)
         logger = WandbLogger(
@@ -54,7 +59,7 @@ def runsetup(cfg: DictConfig) -> None:
             project="vicreg-synth1b1-pqmfs",
             #      # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
             #      name=f"experiment_{run}",
-            config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True),
+            config=cfg_dict,
             # Log model checkpoints as they get created during training
             log_model="all",
             # save_dir="/tmp/turian-wandb",
