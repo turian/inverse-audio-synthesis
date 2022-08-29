@@ -23,6 +23,9 @@ The next level up would be making a SLURM batch script, yeah
 Please do not do data transfers from headnode. this traffic can
 break slurm node checks and create havoc.
 
+Consider:
+CUDA_VISIBLE_DEVICES=1 
+
 
 SGD training:
 ./train.py vicreg.optim.name=sgd vicreg.optim.args.lr=0.1

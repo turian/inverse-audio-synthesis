@@ -5,7 +5,8 @@ accelerator: "gpu"
 #accelerator: "cpu"
 #devices: 2
 devices: 1
-strategy: "ddp"
+#strategy: "ddp"
+strategy: "ddp_find_unused_parameters_false"
 
 num_batches: 50000000
 
