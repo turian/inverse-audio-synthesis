@@ -34,8 +34,20 @@ class AudioEmbedding(nn.Module):
         self.conv1 = nn.Conv2d(
             in_channels=self.dim, out_channels=self.dim, kernel_size=2
         )
+        self.conv00 = nn.Conv2d(
+            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        )
+        self.conv01 = nn.Conv2d(
+            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        )
+        self.conv02 = nn.Conv2d(
+            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        )
+        self.conv03 = nn.Conv2d(
+            in_channels=self.dim, out_channels=self.dim, kernel_size=2
+        )
 
-        self.lin = nn.Linear(self.dim * 4, self.dim)
+        self.lin = nn.Linear(self.dim * 2, self.dim)
 
     def _preprocess(self, audio):
         x = audio
@@ -82,7 +94,13 @@ class AudioEmbedding(nn.Module):
         t = self.conv3(t)
         t = self.conv2(t)
         t = self.conv1(t)
-        t = t.view(audio.shape[0], -1)
+        # This is weird, should I really do this?
+        t = t.view(t.shape[0], t.shape[1], 5, 6)
+        t = self.conv00(t)
+        t = self.conv01(t)
+        t = self.conv02(t)
+        t = self.conv03(t)
+        t = t.view(t.shape[0], -1)
         t = self.lin(t)
         return t
 
