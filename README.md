@@ -8,6 +8,9 @@ GPU batch syncing.
 
 * match 2d to 1d repr
 
+* Disable weight decay in batchnorm: https://discuss.pytorch.org/t/weight-decay-in-the-optimizers-is-a-bad-idea-especially-with-batchnorm/16994/3?u=turian
+https://github.com/Lightning-AI/lightning-flash/issues/1432
+
 * add EMA
 
 * Xavier weight initialization

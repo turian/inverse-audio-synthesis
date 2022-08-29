@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from full_gather_layer import FullGatherLayer
 
 class VICReg(nn.Module):
     def __init__(
@@ -33,8 +34,13 @@ class VICReg(nn.Module):
 
         repr_loss = F.mse_loss(x, y)
 
-        # x = torch.cat(FullGatherLayer.apply(x), dim=0)
-        # y = torch.cat(FullGatherLayer.apply(y), dim=0)
+        x = torch.cat(FullGatherLayer.apply(x), dim=0)
+        y = torch.cat(FullGatherLayer.apply(y), dim=0)
+
+        assert x.shape[0] == self.cfg.vicreg.batch_size * self.world_size
+        assert y.shape[0] == self.cfg.vicreg.batch_size * self.world_size
+        world_batch_size = self.cfg.vicreg.batch_size * self.world_size
+
         x = x - x.mean(dim=0)
         y = y - y.mean(dim=0)
 
@@ -42,8 +48,8 @@ class VICReg(nn.Module):
         std_y = torch.sqrt(y.var(dim=0) + 0.0001)
         std_loss = torch.mean(F.relu(1 - std_x)) / 2 + torch.mean(F.relu(1 - std_y)) / 2
 
-        cov_x = (x.T @ x) / (self.cfg.vicreg.batch_size - 1)
-        cov_y = (y.T @ y) / (self.cfg.vicreg.batch_size - 1)
+        cov_x = (x.T @ x) / (world_batch_size - 1)
+        cov_y = (y.T @ y) / (world_batch_size - 1)
         cov_loss = off_diagonal(cov_x).pow_(2).sum().div(self.embeddim) + off_diagonal(
             cov_y
         ).pow_(2).sum().div(self.embeddim)
