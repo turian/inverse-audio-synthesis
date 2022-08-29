@@ -6,6 +6,8 @@ TODO:
 `torch.cat(FullGatherLayer.apply(x), dim=0)` which we commented out, for some kind of
 GPU batch syncing.
 
+* Add back sync batchnorm.
+
 * match 2d to 1d repr
 
 * Disable weight decay in batchnorm: https://discuss.pytorch.org/t/weight-decay-in-the-optimizers-is-a-bad-idea-especially-with-batchnorm/16994/3?u=turian
