@@ -7,6 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import torch.distributed as dist
+
+from full_gather_layer import FullGatherLayer
 
 class VICReg(nn.Module):
     def __init__(
@@ -33,8 +36,15 @@ class VICReg(nn.Module):
 
         repr_loss = F.mse_loss(x, y)
 
-        # x = torch.cat(FullGatherLayer.apply(x), dim=0)
-        # y = torch.cat(FullGatherLayer.apply(y), dim=0)
+        x = torch.cat(FullGatherLayer.apply(x), dim=0)
+        y = torch.cat(FullGatherLayer.apply(y), dim=0)
+
+        #world_size = self.world_size
+        world_size = dist.get_world_size()
+        assert x.shape[0] == self.cfg.vicreg.batch_size * world_size
+        assert y.shape[0] == self.cfg.vicreg.batch_size * world_size
+        world_batch_size = self.cfg.vicreg.batch_size * world_size
+
         x = x - x.mean(dim=0)
         y = y - y.mean(dim=0)
 
@@ -42,8 +52,8 @@ class VICReg(nn.Module):
         std_y = torch.sqrt(y.var(dim=0) + 0.0001)
         std_loss = torch.mean(F.relu(1 - std_x)) / 2 + torch.mean(F.relu(1 - std_y)) / 2
 
-        cov_x = (x.T @ x) / (self.cfg.vicreg.batch_size - 1)
-        cov_y = (y.T @ y) / (self.cfg.vicreg.batch_size - 1)
+        cov_x = (x.T @ x) / (world_batch_size - 1)
+        cov_y = (y.T @ y) / (world_batch_size - 1)
         cov_loss = off_diagonal(cov_x).pow_(2).sum().div(self.embeddim) + off_diagonal(
             cov_y
         ).pow_(2).sum().div(self.embeddim)
@@ -72,26 +82,6 @@ def off_diagonal(x):
     n, m = x.shape
     assert n == m
     return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
-
-
-class FullGatherLayer(torch.autograd.Function):
-    """
-    Gather tensors from all process and support backward propagation
-    for the gradients across processes.
-    """
-
-    @staticmethod
-    def forward(ctx, x):
-        output = [torch.zeros_like(x) for _ in range(dist.get_world_size())]
-        dist.all_gather(output, x)
-        return tuple(output)
-
-    @staticmethod
-    def backward(ctx, *grads):
-        all_gradients = torch.stack(grads)
-        dist.all_reduce(all_gradients)
-        return all_gradients[dist.get_rank()]
-
 
 def exclude_bias_and_norm(p):
     return p.ndim == 1
