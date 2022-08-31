@@ -44,7 +44,8 @@ scheduler:
     warmup_epochs: 1000
     # ImageNet has 1281167 images and our batch size is 1024,
     # so our "epoch" is ~1251 steps. (+ warmup_epochs)
-    max_epochs: 22510
+    #max_epochs: 22510
+    max_epochs: 3000
     # Learning rate to start the linear warmup.
     warmup_start_lr: 0.0
     # Minimum learning rate.
