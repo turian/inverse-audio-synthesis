@@ -33,7 +33,7 @@ optim:
 ##   lr: 0.01
   name: "lars"
   args:
-    base_lr: 3.2    # 2.0 best with no lr schedule
+    base_lr: 1.0
     weight_decay: 1e-6
     # In LARS we use base_lr instead
     lr: null
