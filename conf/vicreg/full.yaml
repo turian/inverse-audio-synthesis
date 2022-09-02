@@ -41,7 +41,8 @@ scheduler:
   name: "LinearWarmupCosineAnnealingLR"
   args:
     # Try 10k later?
-    warmup_epochs: 1000
+    #warmup_epochs: 1000
+    warmup_epochs: 20000
     # ImageNet has 1281167 images and our batch size is 1024,
     # so our "epoch" is ~1251 steps. (+ warmup_epochs)
     max_epochs: 3000
