@@ -47,6 +47,9 @@ scheduler:
     # so our "epoch" is ~1251 steps. (+ warmup_epochs)
     max_epochs: 3000
     # Learning rate to start the linear warmup.
-    warmup_start_lr: 0.0
+    #warmup_start_lr: 0.0
+    # We like to start fast, at the base_lr
+    # self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.args.base_lr
+    warmup_start_lr: 12.8
     # Minimum learning rate.
     eta_min: 0.0

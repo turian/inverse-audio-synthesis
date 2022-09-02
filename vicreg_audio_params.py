@@ -149,6 +149,7 @@ class VicregAudioParams(pl.LightningModule):
                 weight_decay=self.cfg.vicreg.optim.args.weight_decay,
                 # https://arxiv.org/pdf/2105.04906.pdf
                 # section 4.2
+                # Do we want to multiply or divide by world size?
                 lr=self.cfg.vicreg.batch_size
                 / 256
                 * self.cfg.vicreg.optim.args.base_lr,
