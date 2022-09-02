@@ -4,8 +4,10 @@ rvencu: then no problem, stay within 1-4 gpus range and you are fine
 
 ssh username@login.hpc.stability.ai
 # on a head node run screen
-srun --comment harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --pty bash -i
-srun --comment harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --pty bash -i
+# According to @rom1504 "He was reporting that those [excluded GPUs]
+# gave problems a nontrivial amount of the time."
+srun --comment harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --exclude gpu-st-p4d-24xlarge-[66,106,141,144,225,324,347-350]  --pty bash -i
+srun --comment harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --exclude gpu-st-p4d-24xlarge-[66,106,141,144,225,324,347-350]  --pty bash -i
 
 
 # Only do this once
