@@ -14,6 +14,8 @@ import torchvision
 from omegaconf import DictConfig
 from torch.optim import Optimizer
 
+# Switch to flash, since bolts LinearWarmupCosineAnnealingLR is
+# deprecated?
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
