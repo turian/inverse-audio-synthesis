@@ -19,7 +19,7 @@ class VICReg(nn.Module):
         self.cfg = cfg
         self.reprdim = cfg.dim
         self.embeddim = cfg.embeddim
-        #        self.backbone = nn.Identity()
+        # self.backbone = nn.Identity()
         self.backbone_audio = backbone_audio
         self.backbone_param = backbone_param
         #        self.backbone, self.embedding = resnet.__dict__[cfg.arch](
