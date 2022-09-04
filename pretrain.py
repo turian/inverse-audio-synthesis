@@ -3,6 +3,7 @@
 import hydra
 import numpy as np
 import torch
+from torchinfo import summary
 
 # import torch.distributed as dist
 import torchaudio
@@ -55,6 +56,7 @@ def app(cfg: DictConfig) -> None:
     vicreg = VicregAudioParams(cfg)
     #    if cfg.log == "wand":
     #        plot_filter_range(vicreg, logger)
+    #summary(vicreg, input_size=[(cfg.vicreg.batch_size, int(cfg.torchsynth.buffer_size_seconds * cfg.torchsynth.rate)), (cfg.vicreg.batch_size, cfg.nparams)])
 
     vicreg_model_checkpoint = ModelCheckpoint(
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,

@@ -14,8 +14,6 @@ import torchvision
 from omegaconf import DictConfig
 from torch.optim import Optimizer
 
-# Switch to flash, since bolts LinearWarmupCosineAnnealingLR is
-# deprecated?
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
@@ -96,6 +94,18 @@ class VicregAudioParams(pl.LightningModule):
         # BUG: Why???????
         self.voice.to(self.device)
 
+    def forward(self, audio, params):
+        assert audio.ndim == 2
+        assert params.ndim == 2
+        assert audio.shape[0] == params.shape[0]
+        audio = audio.unsqueeze(1)
+        #audio2 = apply_augmentation(audio)
+
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
+            audio=audio, params=params
+        )
+        return vicreg_loss, repr_loss, std_loss, cov_loss
+
     def _step(self, name, batch, batch_idx):
         # TODO: Try removing CPU move
         assert batch.detach().cpu().numpy().shape == (1,)
@@ -104,12 +114,7 @@ class VicregAudioParams(pl.LightningModule):
         voice_batch_num = voice_batch_num[0].item()
 
         audio, params, is_train = self.voice(voice_batch_num)
-        audio = audio.unsqueeze(1)
-        #  audio2 = apply_augmentation(audio)
-
-        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
-            audio=audio, params=params
-        )
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.forward(audio, params)
         self.log(f"vicreg/{name}/loss", vicreg_loss, sync_dist=True)
         self.log(f"vicreg/{name}/repr_loss", repr_loss, sync_dist=True)
         self.log(f"vicreg/{name}/std_loss", std_loss, sync_dist=True)
