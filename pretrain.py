@@ -3,7 +3,6 @@
 import hydra
 import numpy as np
 import torch
-from torchinfo import summary
 
 # import torch.distributed as dist
 import torchaudio
@@ -11,8 +10,13 @@ import torchaudio.transforms
 from omegaconf import DictConfig
 from pynvml import *
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    ModelSummary,
+)
 from pytorch_lightning.loggers import WandbLogger
+from torchinfo import summary
 
 # from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import mobilenet_v3_small  # , MobileNet_V3_Small_Weights
@@ -56,7 +60,28 @@ def app(cfg: DictConfig) -> None:
     vicreg = VicregAudioParams(cfg)
     #    if cfg.log == "wand":
     #        plot_filter_range(vicreg, logger)
-    #summary(vicreg, input_size=[(cfg.vicreg.batch_size, int(cfg.torchsynth.buffer_size_seconds * cfg.torchsynth.rate)), (cfg.vicreg.batch_size, cfg.nparams)])
+    summary(vicreg.vicreg.projector, input_size=(cfg.vicreg.batch_size, cfg.dim))
+    summary(
+        vicreg.vicreg.backbone_param, input_size=(cfg.vicreg.batch_size, cfg.nparams)
+    )
+    summary(
+        vicreg.vicreg.backbone_audio,
+        input_size=(
+            cfg.vicreg.batch_size,
+            1,
+            int(cfg.torchsynth.buffer_size_seconds * cfg.torchsynth.rate),
+        ),
+    )
+    summary(
+        vicreg,
+        input_size=[
+            (
+                cfg.vicreg.batch_size,
+                int(cfg.torchsynth.buffer_size_seconds * cfg.torchsynth.rate),
+            ),
+            (cfg.vicreg.batch_size, cfg.nparams),
+        ],
+    )
 
     vicreg_model_checkpoint = ModelCheckpoint(
         every_n_train_steps=cfg.vicreg.checkpoint_every_nbatches,
@@ -84,7 +109,12 @@ def app(cfg: DictConfig) -> None:
         val_check_interval=cfg.vicreg.val_check_interval,
         limit_val_batches=cfg.vicreg.limit_val_batches,
         #        log_every_n_steps=1,
-        callbacks=[vicreg_model_checkpoint, LearningRateMonitor()],
+        enable_model_summary=True,
+        callbacks=[
+            vicreg_model_checkpoint,
+            LearningRateMonitor(),
+            ModelSummary(max_depth=2),
+        ],
         # Doesn't work with our CUDA version :(
         # https://github.com/Lightning-AI/lightning-bolts
         # callbacks = [vicreg_model_checkpoint, ORTCallback(), LearningRateMonitor()],

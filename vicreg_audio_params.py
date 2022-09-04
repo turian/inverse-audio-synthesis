@@ -12,9 +12,8 @@ import torch.optim as optim
 import torchaudio
 import torchvision
 from omegaconf import DictConfig
-from torch.optim import Optimizer
-
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from torch.optim import Optimizer
 
 # from torch_audiomentations import Compose, Gain, PolarityInversion
 from torchsynth.config import SynthConfig
@@ -99,12 +98,11 @@ class VicregAudioParams(pl.LightningModule):
         assert params.ndim == 2
         assert audio.shape[0] == params.shape[0]
         audio = audio.unsqueeze(1)
-        #audio2 = apply_augmentation(audio)
+        # audio2 = apply_augmentation(audio)
 
-        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg(
-            audio=audio, params=params
-        )
-        return vicreg_loss, repr_loss, std_loss, cov_loss
+        x, y = self.vicreg(audio=audio, params=params)
+        # Return the embeddings (representations after projection)
+        return x, y
 
     def _step(self, name, batch, batch_idx):
         # TODO: Try removing CPU move
@@ -114,7 +112,8 @@ class VicregAudioParams(pl.LightningModule):
         voice_batch_num = voice_batch_num[0].item()
 
         audio, params, is_train = self.voice(voice_batch_num)
-        vicreg_loss, repr_loss, std_loss, cov_loss = self.forward(audio, params)
+        x, y = self.forward(audio, params)
+        vicreg_loss, repr_loss, std_loss, cov_loss = self.vicreg.loss(x, y)
         self.log(f"vicreg/{name}/loss", vicreg_loss, sync_dist=True)
         self.log(f"vicreg/{name}/repr_loss", repr_loss, sync_dist=True)
         self.log(f"vicreg/{name}/std_loss", std_loss, sync_dist=True)

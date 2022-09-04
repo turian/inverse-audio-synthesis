@@ -30,7 +30,9 @@ class VICReg(nn.Module):
     def forward(self, audio, params):
         x = self.projector(self.backbone_audio(audio))
         y = self.projector(self.backbone_param(params))
+        return x, y
 
+    def loss(self, x, y):
         repr_loss = F.mse_loss(x, y)
 
         # x = torch.cat(FullGatherLayer.apply(x), dim=0)
