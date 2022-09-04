@@ -34,18 +34,7 @@ class AudioEmbedding(nn.Module):
         self.conv1 = nn.Conv2d(
             in_channels=self.dim, out_channels=self.dim, kernel_size=2
         )
-        self.conv00 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv01 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv02 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
-        self.conv03 = nn.Conv2d(
-            in_channels=self.dim, out_channels=self.dim, kernel_size=2
-        )
+        self.lstm = nn.LSTM(input_size=self.dim, hidden_size=self.dim, num_layers=1, batch_first = True, bidirectional = True)
 
         self.lin = nn.Linear(self.dim * 2, self.dim)
 
@@ -94,12 +83,11 @@ class AudioEmbedding(nn.Module):
         t = self.conv3(t)
         t = self.conv2(t)
         t = self.conv1(t)
-        # This is weird, should I really do this?
-        t = t.view(t.shape[0], t.shape[1], 5, 6)
-        t = self.conv00(t)
-        t = self.conv01(t)
-        t = self.conv02(t)
-        t = self.conv03(t)
+        t = t.permute(0, 2, 3, 1).contiguous()
+        t = t.view(t.shape[0], -1, t.shape[3])
+        #output, (h_n, c_n) = self.lstm(t)
+        _, (t, _) = self.lstm(t)
+        t = t.permute(1, 0, 2).contiguous()
         t = t.view(t.shape[0], -1)
         t = self.lin(t)
         return t
