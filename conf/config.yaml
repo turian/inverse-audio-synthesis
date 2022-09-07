@@ -3,8 +3,8 @@
 #precision: bf16
 accelerator: "gpu"
 #accelerator: "cpu"
+#devices: 2
 devices: 8
-#devices: 1
 strategy: "ddp"
 #strategy: "ddp_find_unused_parameters_false"
 

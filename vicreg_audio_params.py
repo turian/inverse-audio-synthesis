@@ -53,28 +53,6 @@ class VicregAudioParams(pl.LightningModule):
 
         self.cfg = cfg
 
-        # New weights with accuracy 80.858%
-        # https://pytorch.org/vision/stable/models.html
-        # weights = ResNet50_Weights.IMAGENET1K_V2
-        # vision_model = resnet50(weights=weights)
-        # vision_model = vision_model.to(device)
-
-        # weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
-        # vision_model = mobilenet_v3_small(weights=weights)
-        # vision_model = vision_model.to(device)
-        # torchvision 0.12.0 :(
-        self.vision_model = mobilenet_v3_small(
-            pretrained=cfg.vicreg.pretrained_vision_model
-        )
-
-        ## Initialize the inference transforms
-        # preprocess = weights.transforms()
-
-        # torchvision 0.12.0 :(
-        self.img_preprocess = torchvision.transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
-
         # Use 3 channels for RGB image (not 4 which is PQMF default)
         # self.gram = PQMF(N=3)
         # TODO: Make these params
@@ -82,7 +60,10 @@ class VicregAudioParams(pl.LightningModule):
         # TODO: in crt
         self.audio_reprs = nn.ModuleList()
         for n_fft in [1024, 2048, 4096]:
-            self.gram = features.STFT(
+            vision_model = mobilenet_v3_small(
+                pretrained=cfg.vicreg.pretrained_vision_model
+            )
+            gram = features.STFT(
                 sr=cfg.torchsynth.rate,
                 n_fft=2048,
                 freq_bins=256,
@@ -98,11 +79,15 @@ class VicregAudioParams(pl.LightningModule):
                 verbose=True,
             )
 
+            img_preprocess = torchvision.transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            )
+
             self.audio_reprs.append(
                 AudioEmbedding(
-                    self.gram,
-                    self.vision_model,
-                    img_preprocess=self.img_preprocess,
+                    gram,
+                    vision_model,
+                    img_preprocess=img_preprocess,
                     dim=cfg.dim,
                 )
             )
@@ -169,6 +154,7 @@ class VicregAudioParams(pl.LightningModule):
                 weight_decay=self.cfg.vicreg.optim.args.weight_decay,
                 # https://arxiv.org/pdf/2105.04906.pdf
                 # section 4.2
+                # Do we want to multiply or divide by world size?
                 lr=self.cfg.vicreg.batch_size
                 / 256
                 * self.cfg.vicreg.optim.args.base_lr,

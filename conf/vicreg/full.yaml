@@ -33,7 +33,7 @@ optim:
 ##   lr: 0.01
   name: "lars"
   args:
-    base_lr: 3.2    # 2.0 best with no lr schedule
+    base_lr: 1.0    # 2.0 best with no lr schedule
     weight_decay: 1e-6
     # In LARS we use base_lr instead
     lr: null
@@ -41,11 +41,17 @@ scheduler:
   name: "LinearWarmupCosineAnnealingLR"
   args:
     # Try 10k later?
-    warmup_epochs: 1000
+    #warmup_epochs: 1000
+    warmup_epochs: 16000
+    # WARNING: This is warmup_epochs PLUS what we want the
+    # cosine cycle #steps to be.
     # ImageNet has 1281167 images and our batch size is 1024,
     # so our "epoch" is ~1251 steps. (+ warmup_epochs)
-    max_epochs: 22510
+    max_epochs: 20000
     # Learning rate to start the linear warmup.
-    warmup_start_lr: 0.0
+    #warmup_start_lr: 0.0
+    # We like to start fast, at the base_lr
+    # self.cfg.vicreg.batch_size / 256 * self.cfg.vicreg.optim.args.base_lr
+    warmup_start_lr: 12.8
     # Minimum learning rate.
     eta_min: 0.0
