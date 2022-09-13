@@ -30,3 +30,4 @@ black
 isort
 prettytable
 gitpython
+tqdm
