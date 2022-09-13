@@ -2,10 +2,15 @@ rvencu: then no problem, stay within 1-4 gpus range and you are fine
 "also make sure all you scripts and data stay on /fsx this is the persistent storage
 "
 
-ssh username@login.hpc.stability.ai
+ssh username@grant.hpc.stability.ai
+#ssh username@login.hpc.stability.ai
 # on a head node run screen
 srun --comment harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --pty bash -i
 srun --comment harmonai --partition=gpu --gpus=2 --cpus-per-gpu=6 --nodes=1 --pty bash -i
+
+#srun --comment harmonai --partition=gpu --gpus=1 --cpus-per-gpu=6 --nodes=1 --exclude gpu-st-p4d-24xlarge-[66,106,141,144,225,324,347-350]  --pty bash -i
+
+Node failure on gpu-st-p4d-24xlarge-22
 
 
 # Only do this once

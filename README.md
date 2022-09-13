@@ -8,6 +8,8 @@ GPU batch syncing.
 
 * match 2d to 1d repr
 
+* https://github.com/Stonesjtu/pytorch_memlab
+
 * Automatically use all GPUs
 
 * add EMA
