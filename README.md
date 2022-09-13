@@ -12,6 +12,12 @@ GPU batch syncing.
 
 * Automatically use all GPUs
 
+* Try solo.learn
+
+* Try lightningcli, looks great
+
+* Try rich progress bar: https://devblog.pytorchlightning.ai/super-charged-progress-bars-with-rich-lightning-669653d6ab97
+
 * add EMA
 
 * Make sure to use .train for training models and .eval for eval
